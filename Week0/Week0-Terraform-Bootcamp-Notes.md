@@ -142,5 +142,86 @@ Fix Terraform CLI Installation, understand the file ".gitpod.yml", and do some b
 > cat /etc/os-release
 
 ## Code Trap
-1. In the terminal there is a window named terraform:bash that would have to 
+
+In the terminal there is a window named terraform:bash that would have to press enter to continue, it is not automated.
+
+## Stop Gitpod and Create feature branch
+
+1. Stop Gitpod. In GitHub, create a new issue. Name the issue 
+> Refactor Terraform CLI
+
+2. Leave a comment 
+> There is an issue with installing the Terraform CLI.
+> We need to go and make sure it automates without user input.
+
+3. Label the issue with the "bug" label.
+
+4. "Submit new issue"
+
+5. Label last issue as "Documentation
+
+6. Go to Refactor Terraform CLI issue and edit the comment to say
+> There is an issue with installing the Terraform CLI.
+> We need to go and make sure it automatically installs to completion without user input.
+
+7. From the new issue, click create a branch and click "create branch" from popup.
+
+8. Go to the code tab and choose the new branch from the branch dropdown. Click Gitpod and start the Gitpod for the new branch.
+
+## Fix the .gitpod.yml terraform
+
+1. In Gitpod, go to the explorer tab and open the .gitpod.yml file.
+
+2. Run each code in the init for terraform in the terminal line by line.
+
+3. In running the curl command to get the package, the error occurs
+
+```bash
+gitpod /workspace/terraform-beginner-bootcamp-2023 (3-refactor-terraform-cli) $ curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+Warning: apt-key is deprecated. Manage keyring files in trusted.gpg.d instead (see apt-key(8)).
+OK
+```
+But maybe it's not the issue
+
+4. In running the sudo apt-add-repo command, It asks to hit enter. Add -y at the end of the command to assume yes to all queries and run it again in termninal. 
+It works but says
+
+```bash
+https://apt.releases.hashicorp.com/dists/jammy/InRelease: Key is stored in legacy trusted.gpg keyring (/etc/apt/trusted.gpg), see the DEPRECATION section in apt-key(8) for details.
+```
+5. Since things are looking deprecated, check the Terraform Installation Guide to see if things changed in a browser.
+[Terraform Install Linux] (https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli)
+Navigate to the linux tab as it will have the most up to date.
+
+6. In Gitpod, create a folder named "bin" in the repo and create a new file called install_terraform_cli. In that file, copy and paste the instructions to install Teraform on Ubuntu/Debian
+
+> sudo apt-get update && sudo apt-get install -y gnupg software-properties-common
+>
+> wget -O- https://apt.releases.hashicorp.com/gpg | \
+> gpg --dearmor | \
+> sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
+>
+> gpg --no-default-keyring \
+> --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg \
+> --fingerprint
+>
+> echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
+> https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
+> sudo tee /etc/apt/sources.list.d/hashicorp.list
+>
+> sudo apt update
+>
+> sudo apt-get install terraform
+
+7. Run the install_terraform_cli line by line in the terminal to what kind of output we are looking for.
+
+8. Run the sudo apt-get command, you can add curl at the end. Everything is good.
+
+9. When running the wget command the backslashes that mean it's a line don't paste that easy. You can remove them. 
+You will get a bunch of nonsense that's okay because it just puts it in a file called /usr/share/keyrings/hashicorp-archive-keyring.gpg
+
+10. When running the gpg command, it has --no-default-keyring and that might fix our depricated issue and it does. 
+
+
+
 
