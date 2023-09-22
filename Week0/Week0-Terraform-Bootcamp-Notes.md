@@ -340,7 +340,7 @@ check if permisions took with ls -al
 > 
 > Example of checking OS Version:
 > 
-> ```
+> ```bash
 > $ cat /etc/os-release
 >
 > PRETTY_NAME="Ubuntu 22.04.3 LTS"
@@ -391,12 +391,12 @@ check if permisions took with ls -al
 >
 > In order to make our bash scripts executable we need to change linux permission to fix to be executable at the user mode.
 >
-> ```sh
+> ```bash
 > chmod u+x ./bin/install_terraform_cli
 > ```
 >
 > alternatively:
-> ```sh
+> ```bash
 > chmod 744 ./bin/install_terraform_cli
 > ```
 >
@@ -505,12 +505,12 @@ e.g `unset PROJECT_ROOT`
 >
 > We can set an env var temporarily when just running a command
 >
-> ```sh
+> ```bash
 > HELLO='world' ./bin/print_message
 > ```
 >
 > Within a bash script we can set env without writing export. eg.
-> ```sh
+> ```bash
 > #!/usr/bin/env bash 
 >
 > HELLO='world'
@@ -537,7 +537,7 @@ Add this to the end of README.md
 >
 > We can persist env vars into Gitpod by storing them in Gitpod Secrets Storage.
 >
-> ```
+> ```bash
 > gp env HELLO='world'
 > ```
 >
@@ -655,7 +655,7 @@ You don't want to use `aws configure` but use the env vars instead
 
 10. Go to README.md and add
 > We can check if our AWS credentials is configured correctly by running the following AWS CLI command:`
-> ```sh
+> ```bash
 > aws sts get-caller-identity
 > ```
 
@@ -812,7 +812,7 @@ We additionally need to provide a resource.
 Go to the documentation for the terraform random provider.
 Copy the first provider
 
-```terraform
+```go
 resource "random_id" "server" {
   keepers = {
     # Generate a new id each time we switch to a new AMI id
@@ -828,7 +828,7 @@ change "server" to "bucket_name"
 6. Go to the random documentation and expaand resources on the left. Go to random_string.
 Copy the example usage.
 
-```terraform
+```go
 resource "random_string" "random" {
   length           = 16
   special          = true
@@ -854,21 +854,21 @@ output "instance_ip_addr" {
 
 10. Edit the string for output to say "random_bucket_name_id"
 Remove aws_instance.server.private_ip and change it to random_string.bucket_name.id
-```tf
+```go
 output "random_bucket_name_id" {
   value = random_string.bucket_name.id
 }
 ```
 
 11. Copy the output code and paste it below it. Change .id to .result
-```
+```go
 output "random_bucket_name_result" {
   value = random_string.bucket_name.result
 }
 ```
 
 12. Change resource values of special to false. Remove override_special.
-```
+```go
 provider "random" {
 resource "random_string" "bucket_name" {
   length           = 16
@@ -888,7 +888,7 @@ It created the terraform.lock.hcl and the .terraform folder.
 The .terraform folder contains a file that is binary. We do not want to commit with this file as it will make it everytime we run init
 
 2.  Go to .gitignore and make sure that file is ignored. The command should be 
-```
+```bash
 # Local .terraform directories
 **/.terraform/*
 ```
@@ -905,7 +905,7 @@ The .terraform folder contains a file that is binary. We do not want to commit w
 
 #### Problem: When I ran terraform plan, I got an error.
 
-```tf
+```bash
 $ terraform plan
 ╷
 │ Error: Reference to undeclared resource
@@ -927,7 +927,7 @@ $ terraform plan
 ```
 
 I chatgpt it, and it said to use this instead to fix the issue
-```
+```go
 terraform {
   required_providers {
     random = {
@@ -963,7 +963,7 @@ When I ran terraform plan, it works now.
 2. Remove the secound output
 It should look like this when done
 
-```
+```go
 output "random_bucket_name" {
   value = random_string.bucket_name.id
 }
@@ -987,7 +987,7 @@ If you need the bucket name again, you can run
 
 1. In README.md, add the following
 
-```
+```md
 ## Terraform Basics
 
 ### Terraform Registry
@@ -1093,7 +1093,413 @@ Add description
 - [ ] We are going to use the random resource for the name
 - [ ] Install the AWS Terraform Provider
 - [ ] Configure AWS Provider
+- [ ] Terraform apply and terraform destroy
 
 2. In the issue, create the branch.
 
 3. In code tab, go to the newly created branch and click Gitpod
+
+### S3 buckets
+
+1. In Gitpod AWS terminal list the AWS S3 buckets
+`aws`
+`aws s3 ls`
+
+You should have no buckets
+
+2. See what user you are
+`aws get-caller-identity`
+
+3. In Terraform Registry webpapage> Providers>AWS>Documentation>S3>aws_S3_bucket
+> https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket
+
+Copy the example usage of a Private Bucket with Tags
+
+```Go
+resource "aws_s3_bucket" "example" {
+  bucket = "my-tf-test-bucket"
+
+  tags = {
+    Name        = "My bucket"
+    Environment = "Dev"
+  }
+}
+```
+4. In Gitpod main.tf, paste the example in front of output. Commit it out for the moment. 
+Hint: Highlight it and use cmd+/
+
+5. In Terraform terminal, do a terraform init because we don't have `.terraform` directory yet
+`terraform init`
+
+6. Apply the terraform
+`terraform apply --auto-approve`
+
+### Show an Error When Naming a Bucket
+
+1. In main.tf, uncomment aws_s3_bucket and remove the tags portion. Chane the bucket value to be a random_string.bucket_name.result
+```go
+resource "aws_s3_bucket" "example" {
+  bucket = random_string.bucket_name.result
+}
+```
+
+2. In terraform terminal, run terraform plan
+`terraform plan`
+
+We should get an error because we have not specified a provider
+
+```bash
+$ terraform plan
+╷
+│ Error: Inconsistent dependency lock file
+│ 
+│ The following dependency selections recorded in the lock file are inconsistent with the current configuration:
+│   - provider registry.terraform.io/hashicorp/aws: required by this configuration but no version is selected
+│ 
+│ To update the locked dependency selections to match a changed configuration, run:
+│   terraform init -upgrade
+```
+3. Go to Terraform Registry webpage>Browse Providers>aws>use provider and copy the code given
+```go
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "5.17.0"
+    }
+  }
+}
+
+provider "aws" {
+  # Configuration options
+}
+```
+
+4. In main.tf paste it after the first required provider.
+
+5. In terminal, run `terraform plan` and we should get an error because we can't have more than one provider for a module.
+
+```bash
+$ terraform plan
+╷
+│ Error: Duplicate required providers configuration
+│ 
+│   on main.tf line 10, in terraform:
+│   10:   required_providers {
+│ 
+│ A module may have only one required providers configuration. The required providers were previously configured at
+│ main.tf:2,3-21.
+╵
+```
+
+6. Copy the aws provider without terraform and required providers (delete the leftover)
+It should like this
+
+```go
+terraform {
+  required_providers {
+    random = {
+      source = "hashicorp/random"
+      version = "3.5.1"
+    }
+    aws = {
+      source = "hashicorp/aws"
+      version = "5.17.0"
+    }
+  }
+}
+```
+
+7. In terminal, do `terraform plan`
+
+You should get an error because it doesn't have the binary file for the provider, aws. It also doesn't have the provider hashes in the .terraform.lock.hcl
+
+```bash
+$ terraform plan
+╷
+│ Error: Inconsistent dependency lock file
+│ 
+│ The following dependency selections recorded in the lock file are inconsistent with the current configuration:
+│   - provider registry.terraform.io/hashicorp/aws: required by this configuration but no version is selected
+│ 
+│ To update the locked dependency selections to match a changed configuration, run:
+│   terraform init -upgrade
+```
+
+8. In order to fix this you have to run `terraform init` in terminal
+
+9. Run `terraform plan`. It should work but will fail when applyingit will have uppercase for the bucket name which won't let you create the bucket
+
+10. Run `terraform apply` and give a yes when prompted. It will fail because of invalid bucket name.
+
+### Fix Random Bucket Name 
+
+1. In a browser navigate to S3 Bucket Naming Rules documentation and copy the url
+> https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
+
+2. In Gitpod main.tf paste the url into resource "aws_s3_bucket. Comment it out and add another comment above with Bucket Naming Rules
+
+```go
+resource "aws_s3_bucket" "example" {
+  # Bucket Naming Rules
+  # https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
+  bucket = random_string.bucket_name.result
+}
+```
+3. Go to Terraform Registry documenation for aws_s3_bucket and copy/paste in main.tf above the resource "aws_s3_bucket". Comment it out
+
+```go
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket
+resource "aws_s3_bucket" "example" {
+  # Bucket Naming Rules
+  # https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
+  bucket = random_string.bucket_name.result
+}
+```
+
+4. In Terraform Registry search for random. In documentation, go to random-string and copy the url
+> https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string
+
+Paste this in main.tf above the resource for random_string and comment it out
+
+```go
+# https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string
+resource "random_string" "bucket_name" {
+  length = 16
+  special = false
+}
+
+```
+5. In the resource parameters for "random_string" "bucket_name" put lower as true and upper as false so we don't have a bucket name created with uppercase. Also change length to 32 characters
+
+```go
+# https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string
+resource "random_string" "bucket_name" {
+  lower=true
+  upper=false
+  length = 32
+  special = false
+}
+```
+
+6. In terminal run `terraform plan`
+Hint: `terraform validate` will allow you to validate your code
+
+7. Run `terraform apply`. Type yes and hit enter
+
+### Verify in AWS That Bucket was created and Destroy Bucket
+
+1. Go to AWS console and see that bucket was created.
+
+2. In Gitpod terminal destroy the terraform to delete that bucket. Type/enter yes when prompted.
+`terraform destroy`
+
+3. Go to AWS console and see that the bucket is gone now.
+
+### Edit README.md to Add Documentation and Commit
+
+1. In Gitpod README.md before "#### Terraform Lock Files" add this
+
+```md
+#### Terraform Destroy
+
+`terraform destroy`
+This will destroy resources.
+
+You can also use the auto-approve flag to skip the approve prompt eg. `terraform destroy --auto-approve`
+```
+
+2. In source control tab, go through your files and make sure there are no secrets. Stage the changes and commit with a message:
+
+> #11 Install terraform provider, create s3 bucket
+
+3. In GitHub, check tasks in issue.
+
+### Homework: Create a Section in README.md about Bucket Naming issue
+
+1. In Gitpod, add a section about the S3 bucket naming problem we encountered. For example, mine is
+
+```md
+##### Problems Applying S3 Bucket
+
+When applying bucket with main.tf, we needed to make sure that the parameters for resource "aws_s3_bucket" "bucket name" had upper as false and lower as true
+
+If you don't have these set then the terraform plan will try to name bucket with uppercase which is not allowed for an S3 bucket. `terraform plan` will say it's good but when using `terraform apply`, it will fail with invalid bucket name
+
+[S3 Bucket Naming Rules](https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html)
+```
+2. Commit with the message explaining what you did like
+> #11 Added S3 bucket naming problem to README.md
+
+### Pull request and tags
+
+1. In GitHub pull request, create a new pull request. In the comments put the issues we checked off
+
+> - [x] Define an S3 Bucket in Terraform
+> - [x] We are going to use the random resource for the name
+> - [x] Install the AWS Terraform Provider
+> - [x] Configure AWS Provider
+> - [x] Terraform apply and terraform destroy
+
+2. Click "create pull request" and then "squash and merge"
+
+3. In Gitpod, look at the Git Graph to see the merge. 
+
+4. In terminal do the following to tag the main branch:
+`git checkout main`
+`git pull`
+`git tag 0.6.0`
+`git push --tags`
+
+5. In Github code tab, check if the tag is there. Stop Gitpod.
+
+## "Terraform Cloud and Terraform Login" video
+
+# Remotely Manage Our State
+
+We don't want to locally manage our state because we are responsible for the state file.
+Instead we want to remotely manage our state using a provider like Terraform Cloud
+
+1. In Github main branch, launch Gitpod. Make sure in the terminals that everything launched okay
+
+2. In browser go to terraform cloud and login.
+
+3. Click New>Project. 
+
+In terraform cloud a workspace and project are diffrent:
+- Workspace: A container in Terraform Cloud for infrastructure state, configurations, and settings.
+- Project: (conceptual) An overarching effort or goal, potentially consisting of multiple Terraform Cloud workspaces.
+
+4. Name the project and create.
+> terraform-beginner-bootcamp-2023
+
+5. In the new project box click "create new workspace"
+
+6. In Gitpod terraform terminal do `terraform init` then `terraform apply --auto-approve`
+
+## Move terraform.tfstate to Terraform Cloud
+
+1. Go back to Terraform Cloud to create a workspace in our project. Choose cli-driven workflow. 
+Name the workspace terra-house-<whatyou want your house to be>
+> terra-house-hello-kitty-island-adventure
+
+Give a description of
+> This will be our Terrahouse infrastructure that will connect to TerraTowns.
+
+Create the workspace.
+
+2. Copy the example code given to you. Go to Gitpod main.tf and paste it after "terraform {"
+It should look like this
+
+```go
+terraform {
+    cloud {
+    organization = "example-org-0dcec0"
+
+    workspaces {
+      name = "terra-house-hello-kitty-island-adventure"
+    }
+  }
+  required_providers {
+    random = {
+      source = "hashicorp/random"
+      version = "3.5.1"
+    }
+    aws = {
+      source = "hashicorp/aws"
+      version = "5.17.0"
+    }
+  }
+}
+
+```
+3. In terraform terminal run `terraform init`. You should get an error as we don't have a token.
+We have to login first.
+
+4. Run `terraform login` and type/enter yes in the prompt.
+
+5. In the Terraform Cloud box, enter captial P.
+Click the link in document with cmd+click.
+
+6. Create a user token. Andrew used one day but I am going to use 30 days.
+Copy the token it gives you.
+
+7. In Terraform box enter q to quit and then y. Paste that token.
+
+8. In terraform terminal run `terraform init` and enter yes when prompted
+
+9. In Terraform Cloud, go to your terra-house in the project. We should see the resources and an output.
+
+### Add documentation to README.md and commit
+
+1. In Gitpod README.md
+
+```md
+## Issues with Terraform Cloud Login and Gitpod Workspace
+
+When attempting to run `terraform login` it will launch bash a wiswig view to generate a token.
+However, it does not work as expected in Gitpod VSCode in the browser. It works in Gitpod VSCode locally.
+
+The workaround if you are using the Gitpod VSCode in the browser is to manually generate a token in Terraform Cloud.
+
+```
+https://app.terraform.io/app/settings/tokens
+```
+
+Then create the file manually here:
+
+```sh
+touch /home/gitpod/.terraform.d/credentials.tfrc.json
+open /home/gitpod/.terraform.d/credentials.tfrc.json
+```
+
+Provide the following code (replace the token in the file):
+
+```json
+{
+  "credentials": {
+    "app.terraform.io": {
+      "token": "YOUR-TERRAFORM-CLOUD TOKEN"
+    },
+  }
+}
+```
+2. Backtrack and create a issue in GitHub with name:
+Terraform Cloud Backend
+
+Give description of: 
+
+- [ ] Configure Terraform Cloud Backend
+- [ ] Workaround for Terraform Login
+- [ ] Migrate our local state to remote state
+- [ ] Create a new Project and Workspace in Terraform Cloud
+
+3. Check off issues. Create the branch off of the issue.
+
+4. In Gitpod terminal do
+`git fetch`
+`git add .`
+`git stash save`
+
+5. Go back to GitHub and copy the new branch name. Go back to Gitpod
+`git checkout 13-terraform-cloud-backend`
+`git stash apply `
+
+6. Review changes, stage changes, and commit with message:
+> #13 migrate local state to terraform cloud using terraform cloud block
+
+7. Make sure issue is closed. Go to pull request with issues as comment. Create pull then merge and squash
+
+### Add tags 
+
+1. In Gitpod do
+`git checkout main`
+`git pull`
+`git tag 0.7.0`
+`git push --tags`
+
+2. Check Git Graph and GitHub
+
+3. Stop Gitpod
+
+##
