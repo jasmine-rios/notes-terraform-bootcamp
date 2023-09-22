@@ -762,5 +762,338 @@ NOTE: We fudged some numbers in the JSON to not expose stuff
 
 # Create an issue
 
-1. 
+1. In Github go to issues and create a new issue. Name the issue
+> Terraform Random Bucket Name
 
+Give a description of
+> - [ ] explore the terraform registry
+> - [ ] install the terraform random provider
+> - [ ] run the terraform init
+> - [ ] generate out a random bucket name
+> - [ ] output the random bucket name to outputs
+
+Create the issue.
+
+2. Create the branch of of the issue.
+
+3. Go to the code tab and select the newly created branch and launch Gitpod.
+
+# Check the branch is working 
+
+1. Go to the AWS terminal and Terraform terminal to make sure it is working
+
+2. In a browser, navigate to the terraform registry
+> https://registry.terraform.io
+
+This is where we will get providers and modules
+
+Providers is what you use to integrate third-party api to make it powered by terraform
+
+modules is a way to provide a template to utilize commly used actions
+
+3. In the search bar of the website search for random. Click use this provider. Copy the code it gives you
+`terraform {`
+`  required_providers {`
+`    random = {`
+`      source = "hashicorp/random"`
+`      version = "3.5.1"`
+`    }`
+`  }`
+`}`
+
+`provider "random" {`
+`  # Configuration options`
+`}`
+
+4. In Gitpod, go to main.tf and paste in the code.
+main.tf is a top-level module.
+
+We additionally need to provide a resource.
+Go to the documentation for the terraform random provider.
+Copy the first provider
+
+```terraform
+resource "random_id" "server" {
+  keepers = {
+    # Generate a new id each time we switch to a new AMI id
+    ami_id = var.ami_id
+  }
+
+  byte_length = 8
+}
+```
+5. In main.tf paste the resource into provider "random.
+change "server" to "bucket_name"
+
+6. Go to the random documentation and expaand resources on the left. Go to random_string.
+Copy the example usage.
+
+```terraform
+resource "random_string" "random" {
+  length           = 16
+  special          = true
+  override_special = "/@£$"
+}
+```
+7. Go to main.tf, paste it over the resource we gave. Chang the second line "random" to "bucket_name".
+
+`resource "random_string" "bucket_name" {`
+
+8. Take out the value of override_special
+
+`  override_special = ""`
+
+9. Go to a broswer and search for terraform output.
+> https://developer.hashicorp.com/terraform/language/values/outputs
+
+Copy the code under declaring an output value and paste it at the end of main.tf.
+
+output "instance_ip_addr" {
+  value = aws_instance.server.private_ip
+}
+
+10. Edit the string for output to say "random_bucket_name_id"
+Remove aws_instance.server.private_ip and change it to random_string.bucket_name.id
+```tf
+output "random_bucket_name_id" {
+  value = random_string.bucket_name.id
+}
+```
+
+11. Copy the output code and paste it below it. Change .id to .result
+```
+output "random_bucket_name_result" {
+  value = random_string.bucket_name.result
+}
+```
+
+12. Change resource values of special to false. Remove override_special.
+```
+provider "random" {
+resource "random_string" "bucket_name" {
+  length           = 16
+  special          = false
+}
+}
+```
+
+### Run a terraform init
+
+1. In Gitpod, go to the terraform terminal. Use the following
+`terraform`
+`terraform init`
+
+It created the terraform.lock.hcl and the .terraform folder.
+
+The .terraform folder contains a file that is binary. We do not want to commit with this file as it will make it everytime we run init
+
+2.  Go to .gitignore and make sure that file is ignored. The command should be 
+```
+# Local .terraform directories
+**/.terraform/*
+```
+
+### Run a terraform plan and terraform apply
+
+1. In the terraform terminal use this to do a terraform plan
+`terraform plan`
+
+2. If successful, run a terraform apply
+`terraform apply`
+
+3. When it asks you for a value type yes to apply it
+
+#### Problem: When I ran terraform plan, I got an error.
+
+```tf
+$ terraform plan
+╷
+│ Error: Reference to undeclared resource
+│ 
+│   on main.tf line 18, in output "random_bucket_name_id":
+│   18:   value = random_string.bucket_name.id
+│ 
+│ A managed resource "random_string" "bucket_name" has not been declared in the
+│ root module.
+╵
+╷
+│ Error: Reference to undeclared resource
+│ 
+│   on main.tf line 22, in output "random_bucket_name_result":
+│   22:   value = random_string.bucket_name.result
+│ 
+│ A managed resource "random_string" "bucket_name" has not been declared in the
+│ root module.
+```
+
+I chatgpt it, and it said to use this instead to fix the issue
+```
+terraform {
+  required_providers {
+    random = {
+      source = "hashicorp/random"
+      version = "3.5.1"
+    }
+  }
+}
+
+provider "random" {}
+
+resource "random_string" "bucket_name" {
+  length = 16
+  special = false
+}
+
+output "random_bucket_name_id" {
+  value = random_string.bucket_name.id
+}
+
+output "random_bucket_name_result" {
+  value = random_string.bucket_name.result
+}
+
+```
+
+When I ran terraform plan, it works now.
+
+### Change main.tf outputs and test it works
+
+1. In main.tf, remove .id from the first output and change the value .id to .result
+
+2. Remove the secound output
+It should look like this when done
+
+```
+output "random_bucket_name" {
+  value = random_string.bucket_name.id
+}
+
+output "random_bucket_name_result" {
+  value = random_string.bucket_name.result
+}
+```
+
+3. In terraform terminal, run terraform plan
+The changes to output will say _id and _result where changed
+
+4. Run this to run teraform apply but not be prompted yes to apply
+`terrafrom apply --auto-approve`
+
+5. It will return the bucket name and create state files.
+If you need the bucket name again, you can run
+`terraform output`
+
+### Add documentation
+
+1. In README.md, add the following
+
+```
+## Terraform Basics
+
+### Terraform Registry
+
+Terraform sources their providers and modules from the terraform registry which is located at [registry.terraform.io](https://registry.terraform.io)
+
+- **Providers** is an interface to APIs that will allow you to create resources in terraform.
+
+- **Modules** are a way to refactor or to make large amounts of terraform modular, portable, and sharable.
+
+[Random Terraform Provider](https://registry.terraform.io/providers/hashicorp/random/)
+### Terraform Console
+
+We can see a list of all the terraform commands by simply typing `terraform`.
+
+
+#### Terrafrom init
+
+At the start of a new terraform project we will run `terraform init` to download the binaries for the terraform providers we will use in this project.
+
+#### Terraform Plan
+
+`terraform plan`
+
+This will generate out a changeset, about the state of our infrastructure and what will be changed.
+
+We can output this changeset ie. "plan to be passed to an apply, but often you can ignore the outputing
+
+#### Terraform Apply
+
+`terraform apply`
+
+This will run a plan and pass the changeset to be executed by terraform. Apply should prompt yes or no.
+
+If we want to automatically approve an apply we can provide the auto approve flag eg. `terraform apply --auto-approve`
+
+### Terraform Lock files
+
+`.terraform.lock.hcl` contains the locked versioning for the providers or modules that should be used with this project.
+
+The Terraform Lock File **should be commited** to your Version Control System (VCS) eg. GitHub
+
+### Terraform State files
+
+`terraform.tfstate` contains information about the current state of your infrastructure. 
+
+This file **should not be committed** to your VCS.
+
+This file can contain senstitive data.
+
+If you loose this file you loose knowing the state of the infrastructure.
+
+`terraform.tfstate.backup` is the previous state file state.
+
+### Terraform Directory
+
+`.terraform` directory contains binaries of terraform providers.
+```
+
+## Make sure you're committing the correct things and PR
+
+1. Go to to source control tab and make sure the state files are not in there.
+
+2. Go to Github issues and checkoff what we have done.
+
+3. In Gitpod, stage the changes and commit with this message
+> #9 add random terraform provider
+
+4. Do a pull request with the message 
+
+> - [x] explore the terraform registry
+> - [x] install the terraform random provider
+> - [x] run the terraform init
+> - [x] generate out a random bucket name
+> - [x] output the random bucket name to outputs
+
+## Git Graph and Add tags
+
+1. In Gitpod terminal, 
+`git checkout main`
+`git pull`
+
+2. Check Git Graph tree to see merge
+
+3. Tag the branch
+`git tag 0.5.0`
+`git push --tags`
+`git fetch`
+
+4. Make sure the tag is in Git Graph and GitHub then stop the workspace.
+
+## "Terraform Provider S3 Bucket, Terraform Destroy" video
+
+### Create a New Issue
+
+1. In GitHub Issues, create a new issue. Name it:
+
+> Simple S3 Bucket
+
+Add description
+
+- [ ] Define an S3 Bucket in Terraform
+- [ ] We are going to use the random resource for the name
+- [ ] Install the AWS Terraform Provider
+- [ ] Configure AWS Provider
+
+2. In the issue, create the branch.
+
+3. In code tab, go to the newly created branch and click Gitpod
