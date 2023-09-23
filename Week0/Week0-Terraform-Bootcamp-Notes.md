@@ -1448,7 +1448,7 @@ https://app.terraform.io/app/settings/tokens
 
 Then create the file manually here:
 
-```sh
+```bash
 touch /home/gitpod/.terraform.d/credentials.tfrc.json
 open /home/gitpod/.terraform.d/credentials.tfrc.json
 ```
@@ -1465,14 +1465,14 @@ Provide the following code (replace the token in the file):
 }
 ```
 2. Backtrack and create a issue in GitHub with name:
-Terraform Cloud Backend
+> Terraform Cloud Backend
 
 Give description of: 
 
-- [ ] Configure Terraform Cloud Backend
-- [ ] Workaround for Terraform Login
-- [ ] Migrate our local state to remote state
-- [ ] Create a new Project and Workspace in Terraform Cloud
+> - [ ] Configure Terraform Cloud Backend
+> - [ ] Workaround for Terraform Login
+> - [ ] Migrate our local state to remote state
+> - [ ] Create a new Project and Workspace in Terraform Cloud
 
 3. Check off issues. Create the branch off of the issue.
 
@@ -1502,4 +1502,269 @@ Give description of:
 
 3. Stop Gitpod
 
-##
+## "Terraform Login Workaround" video
+
+### Create an issue
+1. In GitHub create an issue with the name
+> Generate TFRC 
+
+With the description of
+> - [ ] Create a bash script using ChatGPT to create tfrc file.
+> - [ ] Create new token for 30 days in Terraform Cloud.
+
+2. Open a branch off of the issue.
+
+3. Go to the code tab and choose the newly created branch. Launch Gitpod.
+
+### 
+
+1. Go to chatGPT and ask
+> Write a bash script that will generate out the json file crendentials.tfrc.json with the json structure you generated out and it should use the env var TERRAFORM_CLOUD_TOKEN
+It should return something similar to this although mine went off the rails and didn't have anything close to this.
+```bash
+#!/user/bin/env bash
+
+# Check if TERRAFORM_CLOUD_TOKEN is set
+if [ -z "$TERRAFORM_CLOUD_TOKEN" ]; then
+    echo "Error: TERRAFORM_CLOUD_TOKEN environment variable is not set"
+    exit 1
+fi
+
+# Generate credentials.tfrc.json with the token
+cat > credentials.tfrc.json << EOF
+{
+    "credentials": {
+        "app.terraform.io": {
+            "token": "$TERRAFORM_CLOUD_TOKEN"
+        }
+    }
+}
+EOF
+
+echo "credentials.tfrc.json has been generated."
+
+```
+Copy that code or this code.
+
+2. In gitpod create a new file under bin directory and name it
+> generate_tfrc_credentials
+
+Paste the copied code into there
+
+3. Set the TERRAFORM_CLOUD_TOKEN variable in terminal with
+`gp env TERRAFORM_CLOUD_TOKEN='<Your-token>'`
+`export TERRAFORM_CLOUD_TOKEN='<Your-token>'`
+
+I already set my 30-day token in the last video so I am not doing that.
+You can do a `terraform login status` to make sure the credentials are still good.
+Mine gives an error of 
+```bash
+$ terraform login status
+╷
+│ Error: Service discovery failed for status
+│ 
+│ failed to request discovery document: Get
+│ "https://status/.well-known/terraform.json": dial tcp: lookup status on
+│ 1.1.1.1:53: no such host.
+╵
+```
+So if I need to create a new token later I will. ChatGPT said it's a DNS issue.
+I will do a `gp env TERRAFORM_CLOUD_TOKEN='<Your-token>'` 
+and `export TERRAFORM_CLOUD_TOKEN='<Your-token>'` if it doesn't work.
+
+4. Make the new file able to execute
+`chmod u+x ./bin/generate_tfrc_credentials`
+
+5. Execute the file
+`./bin/generate_tfrc_credentials`
+
+I get an error of 
+```bash
+Error: TERRAFORM_CLOUD_TOKEN environment variable is not set
+```
+So I will create a new token and redo the steps. It works.
+
+6. Confirm the token is there
+`env | grep TERRAFORM_`
+
+7. The code we got from ChatGPT or from the video is not writing to right location
+I couldn't find the repo that he was saying to copy so I wrote it out from video.
+Then I ran it though ChatGPT and fixed any typos.
+
+```bash
+#!/usr/bin/env bash
+
+# Define target directory and file
+TARGET_DIR="/home/gitpod/.terraform.d"
+TARGET_FILE="${TARGET_DIR}/credentials.tfrc.json"
+
+# Check if TERRAFORM_CLOUD_TOKEN is set
+if [ -z "$TERRAFORM_CLOUD_TOKEN" ]; then
+    echo "Error: TERRAFORM_CLOUD_TOKEN environment variable is not set"
+    exit 1
+fi
+
+# Check if directory exists, if not, create it
+if [ ! -d "$TARGET_DIR" ]; then
+    mkdir "$TARGET_DIR"
+fi
+
+# Generate credentials.tfrc.json with the token
+cat > "$TARGET_FILE" << EOF
+{
+    "credentials": {
+        "app.terraform.io": {
+            "token": "$TERRAFORM_CLOUD_TOKEN"
+        }
+    }
+}
+EOF
+
+echo "${TARGET_FILE} has been generated."
+```
+8. Delete the credentials.tfrc.json because we do not want to have that as it has our credentials
+
+9. Run the file to make sure it generates where we want
+`./bin/generate_tfrc_credentials`
+
+10. cat the output file to see the contents
+`cat /home/gitpod/.terraform.d/credentials.tfrc.json`
+
+11. Run `terrafrom init` to make sure it's okay
+
+### Make edits to .gitpod.yml, README.md, and .env.examples
+
+1. Go to .gitpod.yml and add to terrafrom before sources
+`source ./bin/generate_tfrc_credentials`
+
+2. Go to README.md and add documentation
+```md
+We have automated this workaround process using the following bash script [./bin/generate_tfrc_credentials](./bin/generate_tfrc_credentials)
+```
+
+3. Go to .env.examples and add the TERRAFORM_CLOUD_TOKEN
+`TERRAFORM_CLOUD_TOKEN='YOUR SECRET TERRAFROM CLOUD TOKEN`
+
+### Commmit, update issues, and pull request
+
+1. Stage changes and commit with
+> #15 generate workaround for terraform login with gitpod
+
+2. In GitHub go to issues tab and check off issues. Edit then copy the issue description.
+
+3. In pull request and paste the issues with pull request comment
+> - [x] Create a bash script using ChatGPT to create tfrc file.
+> - [x] Create new token for 30 days in Terraform Cloud.
+
+squash and merge
+
+### Add tags
+
+1. In Gitpod check Git Graph to see if the merge is good
+
+2. Run the following
+`git checkout main`
+`git pull`
+`git tag 0.8.0`
+`git push --tags`
+`git fetch`
+
+3. In GitHub, make sure the tag is there.
+
+4. Stop gitpod
+
+## "TF_Alias" video
+
+### Make an issue
+
+1. In GitHub create an issue. Name it
+> TF alias for Terraform
+Give it a description of
+> - [ ] Set an alias for terraform to be tf in our bash file.
+
+2. Create a branch for the issue
+
+3. In code tab use the new branch and click Gitpod
+
+### Make an alias of tf to run terraform
+
+1. In Gitpod terraform terminal open the bash file for our bash profile 
+`open ~/.bash_profile`
+
+2. Go to browser and look up alias in bash
+> https://linuxize.com/post/how-to-create-bash-aliases/#google_vignette
+
+3. In Gitpod ~./bash_profile use the alias to map tf to terraform
+`alias tf="terraform"`
+
+4. Run tf in terminal.
+It won't work because when we update ~/.bash_profile we have to reload it
+`source ~./bash_profile`
+
+5. Run `tf` and it should work.
+
+### Make bash script for alias to be permanent
+
+1. Gitpod is not going to set this up every single time unless we make a script for it.
+Go to chatGPT and ask it
+> write a bash script that will add the following alias to our ./bash_profile
+> alias tf="terraform"
+
+Copy the script
+
+```bash
+#!/usr/bin/env bash
+
+# Check if the alias already exists in the .bash_profile
+grep -q 'alias tf="terraform" ~/.bash_profile'
+
+# $? is a special variable in bash that golds the exit status of the 
+if [ $? -ne 0 ]; then
+    # If the alias does not exist, append it
+    echo 'Alias tf="terraform"' >> ~/.bash_profile
+    echo "Alias added successfully."
+else
+    # Inform the user if the alias already exists
+    echo "Alias 'tf' already exists in ~/.bash_profile."
+fi 
+```
+
+2. In Gitpod create a new file in ./bin named
+> set_tf_alias
+
+3. Paste the code into set_tf_alias and add this at the end
+`source ./bin/set_tf_alias`
+
+
+4. Change the permissions of set_tf_alias to be executable
+`chmod u+x ./bin/set_tf_alias`
+
+5. In gitpod.yml add the file as source for terraform and aws-cli before in as the first source
+`source ./bin/set_tf_alias`
+
+6. Stage and commit the changes with
+> #17 add a script to add tf alias
+
+7. Stop the gitpod
+
+### Test the code
+
+1. In GitHub choose the latest branch and launch Gitpod
+
+2. And it broke
+```bash 
+ HISTFILE=/workspace/.gitpod/cmd-0 history -r; {
+source ./bin/set_tf_alias
+source ./bin/install_terraform_cli
+source ./bin/generate_tfrc_credentials
+
+}
+gitpod /workspace/terraform-beginner-bootcamp-2023 (17-tf-alias-for-terraform) $  HISTFILE=/workspace/.gitpod/cmd-0 history -r; {
+> source ./bin/set_tf_alias
+> source ./bin/install_terraform_cli
+> source ./bin/generate_tfrc_credentials
+> 
+> }
+
+```
+Will try tomorrow
