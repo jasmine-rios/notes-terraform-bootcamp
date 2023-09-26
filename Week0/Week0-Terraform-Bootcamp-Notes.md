@@ -1768,3 +1768,11 @@ gitpod /workspace/terraform-beginner-bootcamp-2023 (17-tf-alias-for-terraform) $
 
 ```
 Will try tomorrow
+
+**FIX** 
+
+You have to go to your project in Terraform Cloud and add your AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION, and AWS_ACCESS_KEY_ID to your environment variables.
+
+If you don't you will run into an error running a Terraform plan saying it doesn't have the credentials.
+
+**MAKE SURE WS_SECRET_ACCESS_KEY and AWS_ACCESS_KEY_ID IS MARKED AS SENSTIVE!!**

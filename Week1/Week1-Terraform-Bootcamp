@@ -1,0 +1,105 @@
+# Week 1 Notes
+
+## "Terraform Beginner Bootcamp Week-1" video
+
+### Create a S3 Bucket with Static Website 
+
+1. On AWS console, go to S3
+
+2. Create a bucket with a unique name and tag the bucket with your app.exampro.co UUID. 
+
+3. Create the bucket. Go to the bucket.
+
+4. Go to properties tab and scroll down to Static Website hosting and click enable.
+
+5. Enter in index.html and error.html where directed. Save changes.
+
+6. On the project's last branch (17) in GitHub, launch gitpod.
+
+7. Make a new folder called public. In that folder create index.html
+
+8. Go to ChatGPT and ask for an index.html for a reciepe. Mine was chocolate cake. Paste that into index.html in Gitpod and save.
+
+9. In Gitpod terminal install a http server
+`npm install http-sever -g`
+
+10. Run the server and click on the link it gives you to see it
+`http-server`
+
+11. In Gitpod, go to the AWS terminal and list out your buckets
+`aws s3 ls`
+Find the bucket we created.
+
+12. In the broswer find AWS S3 CLI and make sure you are on version 2.
+> https://awscli.amazonaws.com/v2/documentation/api/latest/reference/s3/index.html
+Scroll down and click cp (copy) 
+
+13. Look for copy a local file to S3
+> aws s3 cp test.txt s3://mybucket/test2.txt
+edit this to include the file and bucket name
+> aws s3 cp public/index.html s3://terraform-bootcamp-bucket-jas/index.html
+
+14. In AWS S3 console, there should be link for your static website. It will not work as the bucket is not public and doesn't have a bucket policy.
+
+### Use CloudFront to Serve our Static Website
+
+1. In AWS console, go to cloudfront and create a distribution.
+
+2. For origin domain, use the static website in the dropdown.
+
+3. Click No on WAF.
+
+4. In default root object, type index.html
+
+5. In description add
+> terrahouse example cdn
+
+5. Click create distribution. Wait until it's enabled.
+
+6. Click on the distribution and click the link it gives you. It doesn't work as we don't have a bucket policy
+
+### Create Origin Access Control (OAC)
+
+1. In AWS console in Cloudfront, in the left pane go to origin access. Click create control setting.
+
+2. For name and description put
+> terrahouse-example
+Leave defaults and create
+
+3. We can not add the OAC to the distribution because we should have added it when we were created and not use the static website endpoint as origin but the bucket as origin
+
+4. Delete that distribution and create another one. Choose the bucket as the origin.
+
+5. For origin access choose Origin access control settings (recommended). Choose the OAC we created. Make sure to the same settings as the last distribution. Click create distribution.
+
+### Add Bucket Policy
+
+1. After you created that new distribution, you will have a yellow pop-up saying you need to add a bucket policy. Click to copy the policy then click on the link it gives.
+
+2. Click edit under bucket policy and paste the policy in there. Click save changes.
+
+3. In AWS console for Cloudfront, click the link once it is up and it works.
+
+## "Journal TOC and Major Version" video
+
+### Create issue and Branch
+
+1. In Github project repo, create an issue with the name
+> Create TOC Readme
+In the comments add
+> - [ ] Create table of contents in our README
+Create the issue.
+
+2. Create a branch off of the issue.
+
+3. Go to Code tab, choose the newly created branch and click Gitpod
+
+### Edit README for TOC
+
+1. In Github, create a new file named /journal/.keep then create /journal/week0.
+
+2. Copy the README.md and add it to journal/week0
+
+3. Go to GitHub Wiki TOC generator
+paste the READNE.md and copy the TOC that is generated.
+> https://ecotrust-canada.github.io/markdown-toc/
