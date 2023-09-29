@@ -89,6 +89,7 @@ Leave defaults and create
 In the comments add
 > - [ ] Create table of contents in our README
 Create the issue.
+> - [ ] Create journal folder
 
 2. Create a branch off of the issue.
 
@@ -96,10 +97,582 @@ Create the issue.
 
 ### Edit README for TOC
 
-1. In Github, create a new file named /journal/.keep then create /journal/week0.
+1. In Github, create a new file named /journal/.keep then create /journal/week0.md.
 
 2. Copy the README.md and add it to journal/week0
 
 3. Go to GitHub Wiki TOC generator
 paste the READNE.md and copy the TOC that is generated.
 > https://ecotrust-canada.github.io/markdown-toc/
+
+```md
+- [Terraform Beginner Bootcamp 2023](#terraform-beginner-bootcamp-2023)
+  * [Semantic Versioning](#semantic-versioning)
+  * [Install the Terraform CLI](#install-the-terraform-cli)
+    + [Considerations with the Terraform CLI changes](#considerations-with-the-terraform-cli-changes)
+    + [Considerations for Linux Distribution](#considerations-for-linux-distribution)
+    + [Refactoring into Bash Scripts](#refactoring-into-bash-scripts)
+      - [Shebang Considerations](#shebang-considerations)
+      - [Execution Considerations](#execution-considerations)
+      - [Linux Permissions Considerations](#linux-permissions-considerations)
+    + [GitHub Lifecycle: Before, Init, Command](#github-lifecycle--before--init--command)
+    + [Working with Env Vars](#working-with-env-vars)
+      - [Setting and Unsetting Env Vars](#setting-and-unsetting-env-vars)
+      - [Printing Vars](#printing-vars)
+      - [Scoping for Env Vars](#scoping-for-env-vars)
+      - [Persisting Env Vars in Gitpod](#persisting-env-vars-in-gitpod)
+    + [AWS CLI Installation](#aws-cli-installation)
+  * [Terraform Basics](#terraform-basics)
+    + [Terraform Registry](#terraform-registry)
+    + [Terraform Console](#terraform-console)
+      - [Terrafrom init](#terrafrom-init)
+      - [Terraform Plan](#terraform-plan)
+      - [Terraform Apply](#terraform-apply)
+        * [Problems Applying S3 Bucket](#problems-applying-s3-bucket)
+      - [Terraform Destroy](#terraform-destroy)
+      - [Terraform Lock files](#terraform-lock-files)
+      - [Terraform State files](#terraform-state-files)
+      - [Terraform Directory](#terraform-directory)
+  * [Issues with Terraform Cloud Login and Gitpod Workspace](#issues-with-terraform-cloud-login-and-gitpod-workspace)
+  * [Add your AWS credentials to Terraform Cloud](#add-your-aws-credentials-to-terraform-cloud)
+```
+
+4. In README.md for branch 19 remove a lot of stuff to where only this is left.
+For the screenshot of the architectural Diagram, screenshot week 1
+> https://lucid.app/lucidchart/e3f15b1a-2211-4ddb-8c95-f144c2504db4/edit?invitationId=inv_0873b3c6-c652-463f-9f2b-fa0f1b420823&page=0_0#
+
+```md
+# Terraform Beginner Bootcamp 2023
+
+<img width="1373" alt="Architectual-Diagram" src="https://github.com/jasmine-rios/terraform-beginner-bootcamp-2023/assets/93607592/91b42e37-1acf-4ba6-9ee0-8cf9daf51e4d">
+
+## Weekly Journals
+- [Week 0 Journal](/journal/week0.md)
+
+## Extras
+- [Github Markdown TOC Generator](https://ecotrust-canada.github.io/markdown-toc/)
+
+```
+Commit the changes.
+
+5. Make changes to README.md at
+
+`### Gitpod Lifecyle (Before, Init, Commmand)`
+to
+`## Gitpod Lifecyle (Before, Init, Commmand)`
+
+`### Working with Env Vars`
+to
+`## Working with Env Vars`
+
+`#### Setting and Unsetting Env Vars`
+to 
+`### Setting and Unsetting Env Vars`
+
+`#### Printing Vars`
+to
+`### Printing Vars`
+
+`#### Scoping for Env Vars`
+to
+`### Scoping for Env Vars`
+
+`#### Persisting Env Vars in Gitpod`
+to
+`### Persisting Env Vars in Gitpod`
+
+`### AWS CLI Installation`
+to
+`## AWS CLI Installation`
+
+6. Copy the body with the changes and add it to the TOC generator then add the new TOC to week0.md
+
+7. Create week1 file in journal. Copy week0 first line and add it to the top of new file
+`# Terraform Beginner Bootcamp 2023 - Week1`
+commit it
+
+8. In README.md add a link to the new week1 journal file.
+`- [Week 1 Journal](/journal/week1.md)`
+
+### Create a PR
+
+1. In Github issues check off the tasks.
+
+2. In Github Pull requests create a PR and paste the issues as the description.
+
+3. Squash and merge
+
+4. Add tags to main branch using gitpod but we are using each week as a major so it will be
+`git tag 1.0.0`
+
+## "Restructure Root Module" video
+
+### Create an issue
+1. Create a new issue in GitHub
+> Restructure Root Module
+With description
+> - [] variables.tf
+> - [] outputs.tf
+> - [] main.tf
+> - [] providers.tf
+>
+> https://developer.hashicorp.com/terraform/language/modules/develop/structure
+
+2. Create a new branch off of the issue. Open Gitpod for the new branch
+
+3. Edit week1.md and add this. The ascii was generated using ChatGPT
+
+```markdown
+## Root Module Structure
+
+Our root module structure is as follows:
+```
+PROJECT_ROOT
+    |
+    |--- main.tf - everything else
+    |
+    |--- variables.tf - stores the structure of input variables
+    |
+    |--- terraform.tfvars - the data of variables we want to load into our terraform project
+    |
+    |--- providers.tf - defined required providers and their configuration
+    |
+    |--- outputs.tf - stores our outputs
+    |
+    |--- README.md - required for root modules
+```
+
+[Standard Module Structure](https://developer.hashicorp.com/terraform/language/modules/develop/structure)
+```
+### Add files and add content
+
+1. Create the following files into the main project:
+> variables.tf
+> outputs.tf
+> providers.tf
+> terraform.tfvars
+
+2. Split the screen between main.tf and terraform.tfvars
+cut and paste into terraform.tfvars
+
+```go
+terraform {
+    cloud {
+    organization = "example-org-0dcec0"
+
+    workspaces {
+      name = "terra-house-hello-kitty-island-adventure"
+    }
+  }
+  required_providers {
+    random = {
+      source = "hashicorp/random"
+      version = "3.5.1"
+    }
+    aws = {
+      source = "hashicorp/aws"
+      version = "5.17.0"
+    }
+  }
+}
+
+provider "aws" {
+  # Configuration options
+}
+
+provider "random" {
+  # Configuration options
+}
+```
+
+3. Split screen between main.tf and outputs.tf
+
+```go
+output "random_bucket_name" {
+  value = random_string.bucket_name.result
+}
+```
+
+4. Go to the Terraform registry and find the AWS documentation on S3 Bucket Tags
+
+> https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket
+
+Copy the tag portion in the first example and add it to the resource for aws_s3_bucket in main.tf. Modify the tags to show UserUuid
+
+```go
+resource "aws_s3_bucket" "example" {
+  # Bucket Naming Rules
+  # https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
+  bucket = random_string.bucket_name.result
+
+  tags = {
+    UserUuid = var.user_uuid
+  }
+}
+
+```
+5. In variables.tf add what ChatGPT tells you when you ask to define a variable for UserUuid and validate it. Mine looks like this
+
+```go
+variable "user_uuid" {
+  description = "User UUID"
+  type        = string
+
+  validation {
+    condition     = regex("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$", var.user_uuid)
+    error_message = "Invalid User UUID format. It should be in the format xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  }
+}
+
+
+```
+
+6. In terraform cli do an init. 
+
+If you get a failed to read "ExamPro" at host app.terraform.io and it says it's unauthorized, your token on Terraform Cloud is expired and you need to add a new one
+
+7. Do a terraform plan. 
+
+### Problem: I am getting an error of │ Error: Unexpected "terraform" block
+```bash
+│ 
+│   on terraform.tfvars line 1:
+│    1: terraform {
+│ 
+│ Blocks are not allowed here.
+```
+
+I am going to remove the terraform block and see if it fixes it. Now I am getting an unexpected block for cloud. Apparently .tfvars files are meant for variable values and don't support blocks
+
+Solution: I had put the blocks for provider in terraform.tfvars but it needed to be in variables.tf. Now I am stuck on the same error we are in the video
+
+8. Doing a terraform plan gives us this error
+
+```bash
+│ Error: No value for required variable
+│ 
+│   on variables.tf line 1:
+│    1: variable "user_uuid" {
+│ 
+│ The root module input variable "user_uuid" is not set, and has no default
+│ value. Use a -var or -var-file command line argument to provide a value for
+│ this variable.
+```
+This is because we are using terraform cloud for our state files. It runs slower so we are going to switch to local for our state files and go back to Terraform Cloud later.
+
+use this command to see if it the validation of the variable works
+`terraform plan -var user_uuid='testing132'`
+
+I was supposed to get invalid value for variable (shown at 18:34) but I got error in function cell
+```bash
+Error in function call
+│ 
+│   on variables.tf line 6, in variable "user_uuid":
+│    6:     condition     = regex("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$", var.user_uuid)
+│     ├────────────────
+│     │ while calling regex(pattern, string)
+│     │ var.user_uuid is "testing132"
+│ 
+│ Call to function "regex" failed: pattern did not match any part of the
+│ given string.
+```
+Hopefully that's okay 
+
+9. Run a destroy terraform so we can switch to having the state file locally. It won't let us until we comment out everything in variables.tf and tags block in main.tf.
+
+In the video, we were supposed to get an error because Terraform Cloud in the video doesn't have permissions to work with AWS resources. Mine must has permissions because I set my AWS credential variables in AWS
+
+If yours didn't, you would go to Terraform Cloud and go to your workspace then the variables tab and set environment variables AWS_SECRET_ACCESS_KEY (sensitive), AWS_ACCESS_KEY_ID (sensitive), and AWS_DEFAULT_REGION
+
+10. In provider.tf commit out the cloud block for time being and remove the main.tf comment on the S3 bucket tags
+
+11. Do a terraform init because we got rid of the provider by commenting it out. You should get an error saying 
+
+```bash
+$ terraform init
+
+Initializing the backend...
+Migrating from Terraform Cloud to local state.
+╷
+│ Error: Migrating state from Terraform Cloud to another backend is not yet implemented.
+│ 
+│ Please use the API to do this: https://www.terraform.io/docs/cloud/api/state-versions.html
+│ 
+```
+
+That's okay. We are going to delete our terraform.lock.hcl and delete the whole bin folder and contents
+
+11. Now with that deleted, do a tf init and tf plan
+Now it gives us an error of
+```bash
+$ terraform plan
+╷
+│ Error: Reference to undeclared input variable
+│ 
+│   on main.tf line 15, in resource "aws_s3_bucket" "example":
+│   15:     UserUuid = var.user_uuid
+│ 
+│ An input variable with the name "user_uuid" has not been declared. This variable can be declared with a variable
+│ "user_uuid" {} block.
+```
+
+This is because it is still expecting you to supply this variable.
+
+12. Uncomment your variable.tf. Go to your ExamPro account and copy your userUuid and supply it to terminal
+`terraform plan -var user_uuid="########-####-####-####-############"`
+
+#### Problem: Command above gives Invalid validation result.
+In the video (29:29) the command above works. Mine doesn't and gives an error like this
+
+```bash
+│ Error: Invalid variable validation result
+│ 
+│   on variables.tf line 6, in variable "user_uuid":
+│    6:     condition     = regex("^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$", var.user_uuid)
+│     ├────────────────
+│     │ var.user_uuid is "d698d686-2c3c-4cd8-ab27-7ff00bc40152"
+│ 
+│ Invalid validation condition result value: a bool is required.
+```
+I am just going to go to the finished project repo and get the variables.tf as ChatGPT is always giving me code that doesn't work well and I believe it's the regex function not working well.
+
+```go
+variable "user_uuid" {
+  description = "The UUID of the user"
+  type        = string
+  validation {
+    condition        = can(regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$", var.user_uuid))
+    error_message    = "The user_uuid value is not a valid UUID."
+  }
+}
+```
+That fixes my issue
+
+12. When specifying the user_uuid variable you can do that command or in the terrafor.tfvars file add the variable and run `terraform variable`
+
+Now, add that user-uuid variable to Terraform Cloud Workspace Environment variables because we will use that when running the state file on Terraform Cloud
+
+13. Create a file called terraform.tfvars.example and add the variable so we know what it looks like. (user_uuid is not sensitive so it doesn't matter if it shows publicly in repo)
+
+14. Go to .gitpod.yml and add to the terraform before statement at the end. Also run it in terminal to make sure that it works by looking into terraform.tfvars
+```yml
+      cp $PROJECT_ROOT/terraform.tfvars.example $PROJECT_ROOT/terraform.tfvars
+```
+
+### Update documentation
+
+1. Go to week1.md and add
+```markdown
+## Terraform and Input Variables
+### Terraform Cloud Variables
+
+In terraform we can set two kinds of variables:
+- Environment Variables - those you would set in your bash terminal eg. AWS credentials
+- Terraform Variables - those you would normally set in your tfvars file
+
+We can set Terraform Cloud variables to be sensentive so they are not visibily in the UI. 
+
+### Loading Terraform Input Variables
+
+[Terraform INput Variables](https://developer.hashicorp.com/terraform/language/values/variables)
+### Var Flag
+
+We can use the `-var` flag to set an input variable or override a variable in the tfvars file eg. `terraform -var user_uuid="my user_id"`
+
+### Var-file Flag
+
+TODO:
+
+### terraform.tvfars
+
+Instead of running the var flag, you can add variable to terraform.tfvars to make the variable specified and you should only have to run `terraform plan` without having to specify the `-var` flag.
+
+### Order of Terraform Variables
+
+TODO: document which terraform variables take precedence
+
+
+```
+
+**The TODOs are homework to add**
+
+2. We are going to intentionally do a terraform apply to show what we do when the tfstate file gets exposed in next video.
+`tf apply --auto-approve`
+
+3. Stage and commit changes with 
+
+> #21 change structure of root module and add tagging to bucket
+
+### Create PR, merge add tags
+
+1. Follow the procedure from the last videos
+In the video, they found out they were doing work in an old branch.
+To fix that
+`git fetch`
+`git checkout<new branch name>`
+`git merge <old branch> <new branch>`
+
+## "Terraform Import and Configuration Drift" video
+
+### Terraform Input to get the terraform.tfstate after deletion
+
+If you loose your state file and you have a lot of stuff on it, you might not be able to recover because you can't import on all resources.
+
+You might be able to recover, if not a lot of resources it could be possible to recover. **ALWAYS STORE STATE FILE INTO SOMETHING NOT LOCAL E.G TERRAFORM CLOUD**
+
+1. Launch a Gitpod from main branch w/o creating a branch.
+
+2. In a browser, navigate to Terraform's documentation about import
+> https://developer.hashicorp.com/terraform/language/import
+We are going to use import command but we could make an import.tf
+
+3. Go to AWS console for terraform_begineer_bootcamp user. Go to S3. You see a bucket in there but it's no longer managed by terraform because we lost our state file.
+
+4. In Gitpod terminal, 
+`tf init`
+
+5. Go to Terraform Registry AWS documentation and go to S3 bucket. Find the Import on the right pane.
+Use the import command in Gitpod terminal
+`terraform import aws_s3_bucket.example 1wakpj698imyssoncxa1hxx9bx74xknf`
+
+6. Now we will need to import random_string. Go to the Terraform Registry for Random and find the random-string and see the import command for it.
+> https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/string#import
+
+`import random_string.bucket_name 1wakpj698imyssoncxa1hxx9bx74xknf`
+
+7. Run a terraform plan to see if it shows the import impact. It doesn't at bucket name so we need to find a better solution that Random
+
+```bash
+  # aws_s3_bucket.example must be replaced
+-/+ resource "aws_s3_bucket" "example" {
+      + acceleration_status         = (known after apply)
+      + acl                         = (known after apply)
+      ~ arn                         = "arn:aws:s3:::1wakpj698imyssoncxa1hxx9bx74xknf" -> (known after apply)
+      ~ bucket                      = "1wakpj698imyssoncxa1hxx9bx74xknf" # forces replacement -> (known after apply) # forces replacement
+```
+8. Take out random from providers.tf. In main.tf take out random string and replace "random_string" in resource aws_s3_bucket with "var".
+
+```go
+resource "aws_s3_bucket" "example" {
+  # Bucket Naming Rules
+  # https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
+  bucket = var.bucket_name
+  tags = {
+    UserUuid = var.user_uuid
+  }
+}
+```
+9. Go to terraform.tfvars.example and add bucket_name var as the bucket name you already have
+`bucket_name="1wakpj698imyssoncxa1hxx9bx74xknf"`
+Copy that to terraform.tfvars
+
+10. Clear and then do `tf plan`. It should fail with this error
+```bash
+$ tf plan
+╷
+│ Warning: Value for undeclared variable
+│ 
+│ The root module does not declare a variable named "bucket_name" but a value
+│ was found in file "terraform.tfvars". If you meant to use this value, add a
+│ "variable" block to the configuration.
+│ 
+│ To silence these warnings, use TF_VAR_... environment variables to provide
+│ certain "global" settings to all configurations in your organization. To
+│ reduce the verbosity of these warnings, use the -compact-warnings option.
+╵
+╷
+│ Error: Reference to undeclared input variable
+│ 
+│   on main.tf line 5, in resource "aws_s3_bucket" "example":
+│    5:   bucket = var.bucket_name
+│ 
+│ An input variable with the name "bucket_name" has not been declared. This
+│ variable can be declared with a variable "bucket_name" {} block.
+╵
+╷
+│ Error: Reference to undeclared resource
+│ 
+│   on outputs.tf line 2, in output "random_bucket_name":
+│    2:   value = random_string.bucket_name.result
+│ 
+│ A managed resource "random_string" "bucket_name" has not been declared in the
+│ root module.
+╵
+```
+
+11. In variables.tf add bucket_name {} block using ChatGPT by asking it write terraform variable for bucket_name, validate the string so its a valid bucket name for AWS.
+
+ChatGPT once again gave me code with a lot of errors so I copied the one in the finished project
+```go
+variable "bucket_name" {
+ description = "The name of the S3 bucket"
+ type        = string
+
+ validation {
+   condition     = (
+     length(var.bucket_name) >= 3 && length(var.bucket_name) <= 63 && 
+     can(regex("^[a-z0-9][a-z0-9-.]*[a-z0-9]$", var.bucket_name))
+   )
+   error_message = "The bucket name must be between 3 and 63 characters, start and end with a lowercase letter or number, and can contain only lowercase letters, numbers, hyphens, and dots."
+ }
+}
+
+```
+
+12. In outputs change thr output and value
+```go
+
+
+```
+13. In main.tf change resource "aws_S3_bucket" "example" to "website_bucket"
+`resource "aws_s3_bucket" "website_bucket" {`
+
+14. Run a tf plan and it should make it where the bucket name on AWS doesn't change.
+
+15. Run `tf destroy` then `tf apply --auto-approve`
+
+### Add documentation
+
+1. In week1.md add this
+```markdown
+## Dealing with Configuration Drift
+
+## What happens if we lose our state file?
+
+If you lose your statefile, you most likely have to tear down all your cloud infrastructure manually. 
+
+You can use terraform import but it won't work for all cloud resources. You need to check the terraform providers documentation for which resources support import.
+
+### Fix Missing Resources with Terraform Import
+
+`terraform import aws_s3_bucket.website_bucket`
+
+[Terraform Import](https://developer.hashicorp.com/terraform/language/import)
+[AWS S3 Bucket Import](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket#import)
+### Fix Manual Configuration
+
+If someone goes and deletes or modifies cloud resources manually through ClickOps.
+
+If we run Terraform plan with attempt to put our infrastructure back into the expected state fixing Configuration Drift
+```
+2. Create an issue with name
+
+> Configuration Drift
+
+Description
+
+> - [ ] use terraform import
+> - [ ] purposely cause configuration drift via clickops, and correct state.
+
+3. Check off issue's tasks. Create branch from issue.
+
+4. We don't want to do a commit in main so 
+`git fetch`
+`git checkout`
+
+3. Stage and commit with message
+> #23 bucket should no longer use Random provider
+
+4. Create PR and squash and merge.
+
+5. Add tags to main branch in Gitpod then shut down
