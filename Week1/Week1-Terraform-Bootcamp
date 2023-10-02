@@ -676,3 +676,152 @@ Description
 4. Create PR and squash and merge.
 
 5. Add tags to main branch in Gitpod then shut down
+
+## "Create Terrahouse Module" video
+
+### Create nested modules
+
+1. Create an issue in Github name it
+> AWS Terrahouse Module
+Description
+> - [ ] Setup directory structure for our module
+> - [ ] Port our S3 bucket into the module
+
+2. Create a branch off the issue and open Gitpod
+
+3. Create a new folder called
+> modules
+
+4. Under the modules directory create a folder
+> terrahouse_aws
+
+5. Under the directory terrahouse_aws create
+> main.tf
+> variables.tf
+> outputs.tf
+> README.md
+> License 
+
+6. In browser search for Anton Babenko terraform_aws_modules. 
+> https://github.com/terraform-aws-modules/terraform-aws-vpc
+
+7. Go to the license file and copy the whole file contents and paste into license file
+
+8. Go to our main.tf and cut the content out and paste it into main.tf under terrahouse_aws
+
+9. Take the required parameters and aws provider from providers.tf and paste them into main.tf under terrahouse_aws at the top. Add terraform {} before it
+
+10. In providers.tf cut out all the content and paste into main.tf. Delete providers.tf. 
+
+**NOTE** Andrew for some reason has more in his providers.tf than me. I am going to ignore it for now but if I need to add it in (08:27) is where it is at.
+
+11. In variables.tf cut the contents and paste into variables.tf in terrahouse_aws
+
+12. In ouputs.tf cut and paste into outputs.tf under terrahouse_aws.
+13. In main.tf we need to set it up to pass through modules
+```go
+modules "terrahouse_aws" {
+    source = "./modules/terrahouse_aws"
+    user_uuid = var.user_uuid
+    bucket_name = var.bucket_name
+}
+```
+14. Go to terraform module sources in web browser and copy/paste into journal/week1.md
+
+> https://developer.hashicorp.com/terraform/language/modules/sources
+
+Write some more into week1.md
+
+```md
+## Terraform Modules
+
+### Terraform Module Structure
+
+It is recommended to place modules in a `modules` directory when locally developing modules but you can name it whatever you like.
+
+### Passing Input Variables
+
+We can pass input variables to our module.
+The module has to declare these terrform variables in its own variables.tf
+
+```go
+module "terrahouse_aws" {
+    source = "./modules/terrahouse_aws"
+    user_uuid = var.user_uuid
+    bucket_name = var.bucket_name
+}
+```
+
+### Module Sources
+
+Using the source we can import the module from various sources e.g.
+- locally
+- GitHub
+- Terraform Registry
+
+```go
+modules "terrahouse_aws" {
+    source = "./modules/terrahouse_aws"
+}
+```
+(https://developer.hashicorp.com/terraform/language/modules/sources)
+
+
+```
+```
+
+15. In Terraform terminal do a `tf init`. You will have to remove provider aws block from main.tf under terrahouse because it is empty
+
+16. Do a `tf plan` to see if it works. We get errors about our variables list in main.tf. This is because we need to define them in the top level varaibles.tf. Add into variables.tf
+
+```go
+variable "user_uuid" {
+type = string
+}
+
+variable "bucket_name" {
+type = string
+}
+```
+
+17. Run `tf plan` then `tf apply`
+
+18. Run `tf output`. It should say none is found. We need to refrence our nested outputs.tf in our top-level outputs.tf.
+In outputs.tf add
+
+```go
+output "bucket_name" {
+  description = "Bucket name for our static website hosting"
+  value = module.terrahouse_aws.bucket_name
+}
+```
+19. In week1.md before `## Terraform Modules` add this from the webpage on the terraform command 'refresh'
+> https://developer.hashicorp.com/terraform/cli/commands/refresh#usage
+
+```md
+## Fix using Terraform Refresh
+
+```sh
+terraform apply -refresh-only -auto-approve
+```
+```
+```
+20. Do a `tf plan` then `tf apply --auto-approve` then `tf outputs`. 
+`tf destroy`
+
+### Commit and PR 
+
+1. Save and stage changes. Commit with 
+> #25 refactor s3 bucket into the new terrahouse_aws module
+
+2. Check off issues. Copy issues.
+
+3. Create a PR and comment the issues. Squash and merge.
+
+4. Add tag of 1.3.0 to main
+
+5. Close Gitpod
+
+## "Static Website Hosting" video
+
+###
