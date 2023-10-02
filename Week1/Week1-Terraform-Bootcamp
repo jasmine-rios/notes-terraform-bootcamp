@@ -824,4 +824,457 @@ terraform apply -refresh-only -auto-approve
 
 ## "Static Website Hosting" video
 
-###
+### Create an Issue and Launch GitPod
+
+1. In GitHub create an issue named
+> S3 Static Website Hosting
+with a description of
+> - [ ] Configure out bucket for S3 static website hosting
+- [ ] Upload an index.html
+- [ ] Upload an error.html
+- [ ] Update our outputs for static website hosting url
+
+2. Create a branch off of issue and launch branch in Gitpod
+
+### ChatGPT and Terraform Registry
+
+1. In chatGPT ask
+> write terraform for static website hosting for an S3 bucket
+Copy the code for the resource it gives and see if it works.
+```go
+resource "aws_s3_bucket" "static_website" {
+  bucket = "<your-bucket-name>"
+  acl    = "public-read" # Sets bucket ACL to allow public read access
+
+  website {
+    index_document = "index.html" # The default index document
+    error_document = "error.html" # The error document
+  }
+}
+
+```
+
+2. Paste this into our main.tf under terrahouse_AWS at the end.
+
+3. Change bucket name to aws_s3_bucket.website_bucket.bucket.
+
+4. Do `tf init` and `tf plan`. tf plan should fail because agruement is depreciated. It gives us the wrong thing because it is trained on old AWS provider, not on AWS provider 5.0
+
+5. Go to terraform registry and AWS provider documentation. Copy what it told you to use in terminal. Copy the code with routing
+> https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_website_configuration#example-usage
+
+6. In main.tf replace the old code with the copied code
+Rename "example" to "website_configuration"
+Rename bucket to be aws_s3_bucket.website_bucket.bucket
+Take out the routing rules part
+
+7. Do `tf plan` then `tf apply --auto-approve`
+
+8. Go to S3 and find that bucket and go to properties and scroll down to static website. We want to ouput this link. 
+Go to outputs.tf in nested module. Add an output to "website endpoint"
+
+```go
+output "website_endpoint" {
+  value = aws_s3_bucket_website_configuration.website_configuration.website_endpoint
+}
+```
+9. In outputs.tf add a refrence to the nested file
+```go
+output "S3_website_endpoint" {
+  description = "s3 website static hosting website"
+  value = module.terrahouse_aws.website_endpoint
+}
+```
+10. Do `tf plan` and then `tf apply --auto-approve`
+
+### Update week1.md
+
+1. In week1.md add 
+```md
+## Considerations when using ChatGPT to write Terraform
+
+LLMs (Large Language Models) such as ChatGPT may not be trained about documentation or information about Terraform.
+
+It may likely produce older examples that could be deprecated. Often affecting providers.
+```
+2. Go to ChatGPT and ask
+> upload an index.html file to our S3 bucket using terraform code
+Copy the code it gives you.
+
+3. Go to main.tf nested and add to the last block
+```go
+resource "aws_s3_bucket_object" "index_html" {
+  bucket = aws_s3_bucket.static_website.bucket.bucket
+  key    = "index.html" # The key (filename) of the object in the bucket
+  acl    = "public-read" # Set ACL to allow public read access
+```
+
+4. Go to Terraform AWS documentents add search for aws_s3_object. Copy the link.
+> https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object
+
+5. In main.tf nested add the link before your code and commit it out.
+Replace the code from ChatGPT with the example usuage code.
+
+6. Add the link from the website configuration to the top of the code in main.tf nested and comment it out
+
+7. In nested main.tf change bucket name to aws_s3_bucket.website_bucket
+and key to "index.html"
+
+8. To find the path look up path terraform in google. Copy the link.
+> https://developer.hashicorp.com/terraform/language/expressions/references#filesystem-and-workspace-info
+
+9. In week1.md add
+```md
+## Working with Files in Terraform
+
+In terraform there is a special variable in path that allows us to specify local paths.
+- path.module = get the path for the current module
+-path.root = get the path for the root module
+
+[Special Path Variable](https://developer.hashicorp.com/terraform/language/expressions/references#filesystem-and-workspace-info)
+```
+10. Usually you can use `tf console` and ask for path.module or path.root but it is giving us '.' which is not it. 
+Make a new directory named public and files index.hml and error.html
+
+11. In index.html put `hello terraformers` and in error.html `Error found!`
+
+12. Drag nested main.tf to terminal to get the full path. Paste into source with "" around it.
+Comment out etag.
+
+13. Do `tf plan` and `tf apply --auto-approve`
+
+14. Go to S3 console and see index.html in bucket
+
+### Make source path more modular
+
+1. You don't want to make the path hardset to what we have because things change. 
+Add source as this. Path is from dragging index.html to terminal
+`source = "${path.root}/public/index.html"`
+
+2. Do a `tf apply`. See in S3 console that file changed.
+
+3. Add more exclamations to index.hml to see if it changes
+
+4. Do `tf apply` It will say nothing will change because tf doesn't read data. We can know data changed by eTag.
+Uncomment eTag in main.tf nested and change the path.
+
+5. Do `tf apply`. We see our etag update.
+
+### Make source path super modular by using Terraform Variable
+
+1. We could refactor the path to be more modular for people so they can name it something other than index.html.
+Ask ChatGPT
+> Write a terraform variable declaration for index_html_filepath and ensure that its a valid path
+Code the code it gives
+
+2. In variables.tf nested and pasted the copied code at the end.
+
+3. In top-level variables.tf add the variable
+
+4. In terraform.tfvars.example paste in the variable and add the path for both index.html and error.html
+`index_html_filepath="/workspace/terraform-beginner-bootcamp-2023/public/index.html"`
+`error_html_filepath="/workspace/terraform-beginner-bootcamp-2023/public/error.html"`
+
+Add the lines also into terraform.tfvars
+
+5. Change source and etag of index.html in nested main.tf to say var.index_html_filepath. Copy when done and paste below it and change index to error.
+
+6. Change the names on the resource object lines for both blocksnested main.tf to say "error_html" and "index_html.
+
+7. In nested variables.tf add for the error and do the same for top-level variables.tf
+
+7. In main.tf add to source
+`error_html_filepath = var.error_html_filepath`
+`index_html_filepath = var.index_html_filepath`
+
+8. Do `tf apply`. You get an error of 
+```sh
+│ Error: reading S3 Object (index.html): couldn't find resource
+│ 
+│   with module.terrahouse_aws.aws_s3_object.index_html,
+│   on modules/terrahouse_aws/main.tf line 36, in resource "aws_s3_object" "index_html":
+│   36: resource "aws_s3_object" "index_html" {
+```
+
+BUT when doing tf apply again. It works.
+
+### Add to week1.md
+
+1. In week1.md add
+```md
+## Working with Files in Terraform
+
+### Fileexists function
+
+This is a built-in terraform function that checks the exists of a file.
+We used it in our variables.tf nested
+```go
+ validation {
+    condition     = fileexists(var.error_html_filepath)
+    error_message = "The specified file path for error.html does not exist."
+  }
+```
+[Fileexists](https://developer.hashicorp.com/terraform/language/functions/fileexists)
+
+### Filemd5
+
+This is a built in function as well that makes a hash when you give it a path. We used it in helping to create a unique eTag each time we change data in that file we provided the path for.
+
+[Filemd5](https://developer.hashicorp.com/terraform/language/functions/filemd5)
+
+### Path Variables
+
+In terraform there is a special variable in path that allows us to specify local paths.
+- path.module = get the path for the current module
+-path.root = get the path for the root module
+
+[Special Path Variable](https://developer.hashicorp.com/terraform/language/expressions/references#filesystem-and-workspace-info)
+
+resource "aws_s3_object" "index_html" {
+  bucket = aws_s3_bucket.website_bucket.bucket
+  key    = "index.html"
+  source = "${path.root}/public/index.html
+  etag = filemd5(var.index_html_filepath)
+}
+```
+```
+
+### Save, Stage, Commit, PR, tag
+
+1. Do `tf destroy` 
+
+2. Save, stage, and commit changes with
+> #27 enabled static website hosting, uploaded index and error file via terraform
+
+3. Check issues. Copy issues.
+
+4. Create PR. Paste in issues as comment. Squash in Merge.
+
+5. Tag main with 1.4.0 
+We have a tag wrong. Go to Week1.md and add this
+```md
+## Fix tags 
+
+Locally delete a tag
+```sh
+git tag -d <tag_name>
+```
+
+Remotely delete tag
+```sh
+git push --delete origin <tagname>
+```
+
+Checkout the commit that you want to retag. Gave the sha from your Github history
+
+```sh
+git checkout <SHA>
+git tag M.m.P
+git push --tags
+git checkout main
+
+```
+```
+
+
+
+[How to Delete Local and Remote Tags](https://devconnected.com/how-to-delete-local-and-remote-tags-on-git/)
+
+```
+
+6. Checkout to your messed up branch by going to Github and clicking commits and copy the sha.
+Go to gitpod terminal and do `git checkout <SHA>`
+
+7. It tells us to stash the changes we made to week1.md
+`git add .`
+`git stash save`
+`git checkout <SHA>`
+then if you dont have the tag add it and push the tag
+
+8. `git checkout main`
+`git stash apply`
+Save changes to week1.md and stage them. Commit with
+> add fixing tags
+
+9. Sync them then in terminal 
+`git tag 1.4.1`
+Close Gitpod.
+
+## "Content Delivery Network" video
+
+### Ask ChatGPT vs Terraform AWS Documentation
+
+1. Go to ChatCPT and ask
+> AWS CloudFront serving static website hosting for an S3 bucket
+It will give outdated info as OAI (Origin Access Identity) is now OAC (Origin Access Controls)
+
+2. In browser look up origin access controls aws cloudfront and see that it was implemented last year and that's why ChatGPT is wrong sometimes. Also, it doesn't rely on best practices so that's why we need to rely on Tf docs.
+> https://aws.amazon.com/blogs/networking-and-content-delivery/amazon-cloudfront-introduces-origin-access-control-oac/
+
+3. In Terraform registry for AWS go to the documentation and search 
+> aws_cloudfront_distribution
+Click it in the resource tab on the left panel
+The first code is long so we will break up the data in the nested modules.
+
+### Create a issue
+
+1. In GitHub create a issue named
+> CDN Implementation
+with description of
+> - [ ] CloudFront Distribution
+> - [ ] CloudFront Origin Access Control
+> - [ ] Bucket Policy
+
+2. Create a branch off of issue and launch Gitpod for that branch
+
+### Split up CDN and Storage
+
+1. Create two new files under terrahouse_aws
+- resource-cdn.tf
+- resource-storage.tf
+
+2. In nested main.tf grab everything but the providers block and cut it out
+Paste into resource-storage.tf
+
+3. In the webpage we had open eariler grab the code from bottom up to resouce CloudFront Distribution and copy it
+> https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudfront_distribution#example-usage
+
+4. Go to resource-cdn.tf and paste the code you copied. 
+This is the code:
+```go
+resource "aws_cloudfront_distribution" "s3_distribution" {
+  origin {
+    domain_name              = aws_s3_bucket.b.bucket_regional_domain_name
+    origin_access_control_id = aws_cloudfront_origin_access_control.default.id
+    origin_id                = local.s3_origin_id
+  }
+
+  enabled             = true
+  is_ipv6_enabled     = true
+  comment             = "Some comment"
+  default_root_object = "index.html"
+
+  logging_config {
+    include_cookies = false
+    bucket          = "mylogs.s3.amazonaws.com"
+    prefix          = "myprefix"
+  }
+
+  aliases = ["mysite.example.com", "yoursite.example.com"]
+
+  default_cache_behavior {
+    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.s3_origin_id
+
+    forwarded_values {
+      query_string = false
+
+      cookies {
+        forward = "none"
+      }
+    }
+
+    viewer_protocol_policy = "allow-all"
+    min_ttl                = 0
+    default_ttl            = 3600
+    max_ttl                = 86400
+  }
+
+  # Cache behavior with precedence 0
+  ordered_cache_behavior {
+    path_pattern     = "/content/immutable/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD", "OPTIONS"]
+    target_origin_id = local.s3_origin_id
+
+    forwarded_values {
+      query_string = false
+      headers      = ["Origin"]
+
+      cookies {
+        forward = "none"
+      }
+    }
+
+    min_ttl                = 0
+    default_ttl            = 86400
+    max_ttl                = 31536000
+    compress               = true
+    viewer_protocol_policy = "redirect-to-https"
+  }
+
+  # Cache behavior with precedence 1
+  ordered_cache_behavior {
+    path_pattern     = "/content/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = local.s3_origin_id
+
+    forwarded_values {
+      query_string = false
+
+      cookies {
+        forward = "none"
+      }
+    }
+
+    min_ttl                = 0
+    default_ttl            = 3600
+    max_ttl                = 86400
+    compress               = true
+    viewer_protocol_policy = "redirect-to-https"
+  }
+
+  price_class = "PriceClass_200"
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "whitelist"
+      locations        = ["US", "CA", "GB", "DE"]
+    }
+  }
+
+  tags = {
+    Environment = "production"
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+}
+```
+
+5. Copy the URL you just got the code from and paste above the code and comment it out.
+
+6. Under the code for orgin in the domain portion change the = to aws_s3_bucket.website_bucket.bucket_regional_domain_name
+
+7. Change comment to = "Static website hosting for: ${var.bucket_name}
+
+8. Remove logging_config block because we don't want logging
+
+9. Comment out alias.
+
+10. Delete all the caching blocks for # Cache behavior with precedence 0 and 1
+
+11. For restrictions- geo restrictions change "whitelist" to "none" and take out locations to where it is []
+
+12. For tags remove environment and put UserUuid = var.user_uuid
+
+13. On the top add 
+```go
+locals {
+  s3_origin_id = "myS3Origin"
+}
+```
+
+14. In Terraform AWS documentation look up 
+> aws_cloudfront_origin_access_control
+> https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudfront_origin_access_control
+Copy the code and paste it in the front of resource_cdn.tf then in front of the code paste the link and comment it out.
+
+15. In the new code change name to = "OAC ${var.bucket_name}
+
+16. Change description to "Origin Access Controls for Static Website Hosting ${var.bucket_name}
+
+
