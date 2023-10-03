@@ -105,7 +105,7 @@ Create the issue.
 paste the READNE.md and copy the TOC that is generated.
 > https://ecotrust-canada.github.io/markdown-toc/
 
-```md
+```markdown
 - [Terraform Beginner Bootcamp 2023](#terraform-beginner-bootcamp-2023)
   * [Semantic Versioning](#semantic-versioning)
   * [Install the Terraform CLI](#install-the-terraform-cli)
@@ -141,7 +141,7 @@ paste the READNE.md and copy the TOC that is generated.
 For the screenshot of the architectural Diagram, screenshot week 1
 > https://lucid.app/lucidchart/e3f15b1a-2211-4ddb-8c95-f144c2504db4/edit?invitationId=inv_0873b3c6-c652-463f-9f2b-fa0f1b420823&page=0_0#
 
-```md
+```markdown
 # Terraform Beginner Bootcamp 2023
 
 <img width="1373" alt="Architectual-Diagram" src="https://github.com/jasmine-rios/terraform-beginner-bootcamp-2023/assets/93607592/91b42e37-1acf-4ba6-9ee0-8cf9daf51e4d">
@@ -732,7 +732,7 @@ modules "terrahouse_aws" {
 
 Write some more into week1.md
 
-```md
+```markdown
 ## Terraform Modules
 
 ### Terraform Module Structure
@@ -798,7 +798,7 @@ output "bucket_name" {
 19. In week1.md before `## Terraform Modules` add this from the webpage on the terraform command 'refresh'
 > https://developer.hashicorp.com/terraform/cli/commands/refresh#usage
 
-```md
+```markdown
 ## Fix using Terraform Refresh
 
 ```sh
@@ -890,7 +890,7 @@ output "S3_website_endpoint" {
 ### Update week1.md
 
 1. In week1.md add 
-```md
+```markdown
 ## Considerations when using ChatGPT to write Terraform
 
 LLMs (Large Language Models) such as ChatGPT may not be trained about documentation or information about Terraform.
@@ -924,7 +924,7 @@ and key to "index.html"
 > https://developer.hashicorp.com/terraform/language/expressions/references#filesystem-and-workspace-info
 
 9. In week1.md add
-```md
+```markdown
 ## Working with Files in Terraform
 
 In terraform there is a special variable in path that allows us to specify local paths.
@@ -1001,7 +1001,7 @@ BUT when doing tf apply again. It works.
 ### Add to week1.md
 
 1. In week1.md add
-```md
+```markdown
 ## Working with Files in Terraform
 
 ### Fileexists function
@@ -1052,7 +1052,7 @@ resource "aws_s3_object" "index_html" {
 
 5. Tag main with 1.4.0 
 We have a tag wrong. Go to Week1.md and add this
-```md
+```markdown
 ## Fix tags 
 
 Locally delete a tag
@@ -1072,14 +1072,11 @@ git checkout <SHA>
 git tag M.m.P
 git push --tags
 git checkout main
-
 ```
-```
-
-
 
 [How to Delete Local and Remote Tags](https://devconnected.com/how-to-delete-local-and-remote-tags-on-git/)
 
+```
 ```
 
 6. Checkout to your messed up branch by going to Github and clicking commits and copy the sha.
@@ -1271,10 +1268,440 @@ locals {
 14. In Terraform AWS documentation look up 
 > aws_cloudfront_origin_access_control
 > https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudfront_origin_access_control
-Copy the code and paste it in the front of resource_cdn.tf then in front of the code paste the link and comment it out.
+Copy the code and paste it in the front of resource_cdn.tf then in front of the code paste the link and comment it out. Change name to "default".
 
 15. In the new code change name to = "OAC ${var.bucket_name}
 
 16. Change description to "Origin Access Controls for Static Website Hosting ${var.bucket_name}
 
+### Add Bucket Policy
 
+1. Search in Terraform AWS for aws_s3_bucket_policy
+> https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_policy#example-usage
+Find the code and copy it 
+```go
+resource "aws_s3_bucket_policy" "allow_access_from_another_account" {
+  bucket = aws_s3_bucket.example.id
+  policy = data.aws_iam_policy_document.allow_access_from_another_account.json
+}
+
+```
+2. Paste into resource-storage.tf. Change the resource name to "bucket_policy"
+Change bucket to aws_s3_bucket.website_bucket.bucket_name
+Change Policy to jsonencode({}) with this you code in JSON right there
+
+3. Copy the bucket policy from step 5 in AWS OAC website
+> https://aws.amazon.com/blogs/networking-and-content-delivery/amazon-cloudfront-introduces-origin-access-control-oac/
+
+4. Find the website on Terraform Data Sources
+> https://developer.hashicorp.com/terraform/language/data-sources
+Look for aws_caller_identity and this will have the IDENTITY we need in the Bucket Policy in resource-storage.tf
+
+5. In nested main.tf paste in the link for data sources then comment it out.
+> https://developer.hashicorp.com/terraform/language/data-sources
+Add in the top line of the code under that link.
+
+6. Now that we have that in our main.tf nested, we can interporlate that in our resource.storage.tf to get our IDENTITY
+Now our resource-storage.tf will look like this
+
+```go
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket
+resource "aws_s3_bucket" "website_bucket" {
+  # Bucket Naming Rules
+  # https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
+  bucket = var.bucket_name
+  tags = {
+    UserUuid = var.user_uuid
+  }
+}
+
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_website_configuration
+resource "aws_s3_bucket_website_configuration" "website_configuration" {
+  bucket = aws_s3_bucket.website_bucket.bucket
+
+  index_document {
+    suffix = "index.html"
+  }
+
+  error_document {
+    key = "error.html"
+  }
+
+}
+
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object
+resource "aws_s3_object" "index_html" {
+  bucket = aws_s3_bucket.website_bucket.bucket
+  key    = "index.html"
+  source = var.index_html_filepath
+  etag = filemd5(var.index_html_filepath)
+}
+# https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object
+resource "aws_s3_object" "error_html" {
+  bucket = aws_s3_bucket.website_bucket.bucket
+  key    = "error.html"
+  source = var.error_html_filepath
+  etag = filemd5(var.error_html_filepath)
+}
+
+resource "aws_s3_bucket_policy" "bucket_policy" {
+  bucket = aws_s3_bucket.website_bucket.bucket
+  policy = jsonencode({
+    "Version" = "2012-10-17",
+    "Statement" = [
+        {
+            "Sid" = "AllowCloudFrontServicePrincipalReadOnly",
+            "Effect" = "Allow",
+            "Principal" = {
+                "Service" = "cloudfront.amazonaws.com"
+            },
+            "Action" = "s3:GetObject",
+            "Resource" = "arn:aws:s3:::${aws_s3_bucket.website_bucket.id}/*",
+            "Condition" = {
+                "StringEquals" = {
+                    "AWS:SourceArn" = "arn:aws:cloudfront::${data.aws_caller_identity.current.account_id}:distribution/DISTRIBUTION_ID"
+                }
+            }
+        },
+        
+    ]
+}
+)
+}
+
+
+```
+7. In our resource-storage.tf change the DISTRIBUTION_ID to what is in resource-cdn.tf which is ${aws_cloudfront_distribution.s3_distributionid}
+
+8. Search up Terraform Locals for our documentation
+> https://developer.hashicorp.com/terraform/language/values/locals
+9. Do a `tf init` then `tf plan`. We should have 7 changes to add.
+
+10. Do a `tf apply --auto-approve` and this should take a long time
+
+11. Once it's done, go to your AWS console and look at CloudFront. Copy the distribution name in a browser and search it.
+When we go to it, it downloads a file because we didn't specify the content type.
+
+12. In resource_storage.tf and add the content type in aws_s3_object index.html and for error.html as well
+`content_type = "text/html`
+
+13. Do `tf apply` to see if it picks up the content_type. It does take the changes.
+
+14. Refresh the AWS cloudfront page.Try the distribution link again, we get "Hello Terraformers!!"
+In the video it didn't work for him and he added a html5 header he got from ChatGPT.
+
+16. Go to jsonencode on terraform website so we can reference it in our documentation
+
+15. Go to week1.md and add 
+```markdown
+
+## Terraform Locals
+```go
+locals {
+  s3_origin_id = "myS3Origin"
+}
+```
+
+[Locals Values](https://developer.hashicorp.com/terraform/language/values/locals)
+## Terraform Data Sources
+
+This allows us to source data from cloud resources.
+
+This is useful when want to reference cloud resources without inputting them. e.g.
+
+```go
+data "aws_caller_identity" "current" {}
+```
+
+
+[Data Sources](https://developer.hashicorp.com/terraform/language/data-sources)
+
+## Working with JSON
+
+We use the jsonencode to create the json policy inline in the hcl.
+
+```go
+jsonencode({"hello"="world"})
+{"hello":"world"}
+```
+
+[Jsonencode](https://developer.hashicorp.com/terraform/language/functions/jsonencode)
+
+```
+```
+
+### Stage, commit, PR, and Tag
+
+1. Stage all the changes and commit with 
+> #29 create cdn and serve s3 bucket from cdn
+
+2. Check issues. Copy issue description.
+
+3. Create PR add issue to comment. Squash and merge
+
+4. In Gitpod checkout to main and add 1.5.0 tag. Push the tags.
+
+## "Terraform Data and Content Version" video
+
+### Create Website Versions
+
+We want to have multiple versions of our website instead of everytime we change our html files. Doing an invalidation with "/*" is an expensive call and we have to now that our website gets cached to servers all over the world too
+
+### Create Issue
+
+1. Create a GitHub issue named
+> Setup Content Version
+with a description of
+> - [ ] only change files when we set a content version
+
+2. Create a branch off the issue.
+
+3. Launch Gitpod off of the new branch
+
+### Make better pages for index.html and error.html
+
+1. Ask chatGPT to make an HTML5 for index.html and copy and paste into index.html and edit it to say Welcome Terraformers!!!
+```html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello Terraformers!!!</title>
+</head>
+<body>
+    <header>
+        <h1>Hello Terraformers!!!</h1>
+    </header>
+</body>
+</html>
+
+```
+2. Do the same for error.html but put Error Found!
+
+### Create Versions for our Website
+
+1. In terraform.tfvars.example and terraform.tfvars add
+`content_version=1`
+
+2. Ask ChatGPT
+> Write a terraform variable for contect_version that ensures it only uses positive integers starting at 1
+Copy the code 
+```go
+variable "content_version" {
+  description = "Version number for the content"
+  type        = number
+
+  validation {
+    condition     = var.content_version > 0 && ceil(var.content_version) == floor(var.content_version)
+    error_message = "Content version must be a positive integer starting at 1."
+  }
+}
+
+```
+
+3. In variables.tf nested, paste the code
+
+4. In variables.tf add
+```go
+variable "content_version" {
+  type = number
+}
+```
+
+5. In a web broswer search for terraform resource lifecycle
+> https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle
+Copy the link and paste it in week1.md
+
+```markdown
+### Changing the Lifecycle of Resources
+
+[Meta Agruements Lifecycle ](https://developer.hashicorp.com/terraform/language/meta-arguments/lifecycle)
+```
+
+6. Go to resource-storage.tf 
+under resource for index.html and error.html add
+```go
+lifecycle {
+    ignore_changes = [ etag ]
+  }
+```
+Comment it out to observe it first
+
+7. In main.tf add
+`content_version = 1`
+
+8. Do `tf init` then `tf apply` (Mine said OAC and S3 bucket already exists)
+
+9. Change index.html a little bit then do a `tf plan`
+
+10. Uncomment in resource-stroage.tf the lifecycle block and run `tf plan`
+
+11. Now we need to add content_version but we need a resource but we can uses terraform_data to do that at the end of resource-storage.tf
+```go
+resource "terraform_data" "content_version"{
+  input = var.content_version
+}
+```
+12. Now go to the lifecyle and add 
+`replace_triggered_by = [terraform_data.content_version.output]`
+
+13. Do `tf plan` then `tf apply`.
+
+**PROBLEM**
+I get this
+```sh
+│ Error: creating Amazon CloudFront Origin Access Control (OAC 1wakpj698imyssoncxa1hxx9bx74xknf): OriginAccessControlAlreadyExists: An origin access control with the same name already exists.
+│       status code: 409, request id: 09d1943b-23da-4720-a312-4002b7f23f60
+│ 
+│   with module.terrahouse_aws.aws_cloudfront_origin_access_control.default,
+│   on modules/terrahouse_aws/resource-cdn.tf line 3, in resource "aws_cloudfront_origin_access_control" "default":
+│    3: resource "aws_cloudfront_origin_access_control" "default" {
+│ 
+```
+Hopefully its okay
+
+14. Change index.html and run `tf plan` to see if it the index.html. It shouldn't because we haven't triggered a content version.
+**PROBLEM** Mine shows this so I am not sure if this is bad but I don't see anything about index.html
+
+```sh
+$ tf plan
+
+module.terrahouse_aws.terraform_data.content_version: Refreshing state... [id=12f8fd3c-8d8b-9b6b-8855-5ed455af322f]
+module.terrahouse_aws.data.aws_caller_identity.current: Reading...
+module.terrahouse_aws.aws_s3_bucket.website_bucket: Refreshing state... [id=1wakpj698imyssoncxa1hxx9bx74xknf]
+module.terrahouse_aws.data.aws_caller_identity.current: Read complete after 0s [id=816073131308]
+module.terrahouse_aws.aws_s3_bucket_website_configuration.website_configuration: Refreshing state... [id=1wakpj698imyssoncxa1hxx9bx74xknf]
+module.terrahouse_aws.aws_s3_object.error_html: Refreshing state... [id=error.html]
+module.terrahouse_aws.aws_s3_object.index_html: Refreshing state... [id=index.html]
+
+Terraform used the selected providers to generate the following execution plan.
+Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # module.terrahouse_aws.aws_cloudfront_distribution.s3_distribution will be created
+  + resource "aws_cloudfront_distribution" "s3_distribution" {
+      + arn                            = (known after apply)
+      + caller_reference               = (known after apply)
+      + comment                        = "Static websitre hosting for 1wakpj698imyssoncxa1hxx9bx74xknf"
+      + default_root_object            = "index.html"
+      + domain_name                    = (known after apply)
+      + enabled                        = true
+      + etag                           = (known after apply)
+      + hosted_zone_id                 = (known after apply)
+      + http_version                   = "http2"
+      + id                             = (known after apply)
+      + in_progress_validation_batches = (known after apply)
+      + is_ipv6_enabled                = true
+      + last_modified_time             = (known after apply)
+      + price_class                    = "PriceClass_200"
+      + retain_on_delete               = false
+      + staging                        = false
+      + status                         = (known after apply)
+      + tags                           = {
+          + "UserUuid" = "d698d686-2c3c-4cd8-ab27-7ff00bc40152"
+        }
+      + tags_all                       = {
+          + "UserUuid" = "d698d686-2c3c-4cd8-ab27-7ff00bc40152"
+        }
+      + trusted_key_groups             = (known after apply)
+      + trusted_signers                = (known after apply)
+      + wait_for_deployment            = true
+
+      + default_cache_behavior {
+          + allowed_methods        = [
+              + "DELETE",
+              + "GET",
+              + "HEAD",
+              + "OPTIONS",
+              + "PATCH",
+              + "POST",
+              + "PUT",
+            ]
+          + cached_methods         = [
+              + "GET",
+              + "HEAD",
+            ]
+          + compress               = false
+          + default_ttl            = 3600
+          + max_ttl                = 86400
+          + min_ttl                = 0
+          + target_origin_id       = "myS3Origin"
+          + trusted_key_groups     = (known after apply)
+          + trusted_signers        = (known after apply)
+          + viewer_protocol_policy = "allow-all"
+
+          + forwarded_values {
+              + headers                 = (known after apply)
+              + query_string            = false
+              + query_string_cache_keys = (known after apply)
+
+              + cookies {
+                  + forward           = "none"
+                  + whitelisted_names = (known after apply)
+                }
+            }
+        }
+
+      + origin {
+          + connection_attempts      = 3
+          + connection_timeout       = 10
+          + domain_name              = "1wakpj698imyssoncxa1hxx9bx74xknf.s3.us-east-1.amazonaws.com"
+          + origin_access_control_id = (known after apply)
+          + origin_id                = "myS3Origin"
+        }
+
+      + restrictions {
+          + geo_restriction {
+              + locations        = (known after apply)
+              + restriction_type = "none"
+            }
+        }
+
+      + viewer_certificate {
+          + cloudfront_default_certificate = true
+          + minimum_protocol_version       = "TLSv1"
+        }
+    }
+
+  # module.terrahouse_aws.aws_cloudfront_origin_access_control.default will be created
+  + resource "aws_cloudfront_origin_access_control" "default" {
+      + description                       = "Origin Access Controls for Static Website Hosting 1wakpj698imyssoncxa1hxx9bx74xknf"
+      + etag                              = (known after apply)
+      + id                                = (known after apply)
+      + name                              = "OAC 1wakpj698imyssoncxa1hxx9bx74xknf"
+      + origin_access_control_origin_type = "s3"
+      + signing_behavior                  = "always"
+      + signing_protocol                  = "sigv4"
+    }
+
+  # module.terrahouse_aws.aws_s3_bucket_policy.bucket_policy will be created
+  + resource "aws_s3_bucket_policy" "bucket_policy" {
+      + bucket = "1wakpj698imyssoncxa1hxx9bx74xknf"
+      + id     = (known after apply)
+      + policy = (known after apply)
+    }
+
+Plan: 3 to add, 0 to change, 0 to destroy.
+
+───────────────────────────────────────────────────────────────────────────────
+
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.
+```
+
+I am going to bring this up in office hours.
+Found out I was working in main so I used stash and had to do `git add <filename>` for a all the files.
+
+When running `tf destroy` only these are deleted
+- module.terrahouse_aws.terraform_data.content_version
+- module.terrahouse_aws.aws_s3_object.index_html
+- module.terrahouse_aws.aws_s3_object.error_html
+- module.terrahouse_aws.aws_s3_bucket_website_configuration.website_configuration
+- module.terrahouse_aws.aws_s3_bucket.website_bucket
+
+but not the OAC or Cloudfront distribution so maybe that's the issue
+I am going to mannually delete them 

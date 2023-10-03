@@ -987,7 +987,7 @@ If you need the bucket name again, you can run
 
 1. In README.md, add the following
 
-```md
+```markdown
 ## Terraform Basics
 
 ### Terraform Registry
@@ -1300,7 +1300,7 @@ Hint: `terraform validate` will allow you to validate your code
 
 1. In Gitpod README.md before "#### Terraform Lock Files" add this
 
-```md
+```markdown
 #### Terraform Destroy
 
 `terraform destroy`
@@ -1319,7 +1319,7 @@ You can also use the auto-approve flag to skip the approve prompt eg. `terraform
 
 1. In Gitpod, add a section about the S3 bucket naming problem we encountered. For example, mine is
 
-```md
+```markdown
 ##### Problems Applying S3 Bucket
 
 When applying bucket with main.tf, we needed to make sure that the parameters for resource "aws_s3_bucket" "bucket name" had upper as false and lower as true
@@ -1434,7 +1434,7 @@ Copy the token it gives you.
 
 1. In Gitpod README.md
 
-```md
+```markdown
 ## Issues with Terraform Cloud Login and Gitpod Workspace
 
 When attempting to run `terraform login` it will launch bash a wiswig view to generate a token.
@@ -1638,7 +1638,8 @@ echo "${TARGET_FILE} has been generated."
 `source ./bin/generate_tfrc_credentials`
 
 2. Go to README.md and add documentation
-```md
+
+```markdown
 We have automated this workaround process using the following bash script [./bin/generate_tfrc_credentials](./bin/generate_tfrc_credentials)
 ```
 
