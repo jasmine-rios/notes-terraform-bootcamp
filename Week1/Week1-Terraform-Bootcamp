@@ -1490,11 +1490,11 @@ with a description of
 Copy the code 
 ```go
 variable "content_version" {
-  description = "Version number for the content"
-  type        = number
+  description = "The content version. Should be a positive integer starting"
+  type = number
 
   validation {
-    condition     = var.content_version > 0 && ceil(var.content_version) == floor(var.content_version)
+    condition = var.content_version > 0 && floor(var.content_version) == ßvar.content_version
     error_message = "Content version must be a positive integer starting at 1."
   }
 }
@@ -1536,15 +1536,15 @@ Comment it out to observe it first
 
 9. Change index.html a little bit then do a `tf plan`
 
-10. Uncomment in resource-stroage.tf the lifecycle block and run `tf plan`
+10. Uncomment in resource-storage.tf the lifecycle block and run `tf plan`
 
 11. Now we need to add content_version but we need a resource but we can uses terraform_data to do that at the end of resource-storage.tf
 ```go
-resource "terraform_data" "content_version"{
+resource "terraform_data" "content_version" {
   input = var.content_version
 }
 ```
-12. Now go to the lifecyle and add 
+12. Now go to the lifecyle of index.html and add 
 `replace_triggered_by = [terraform_data.content_version.output]`
 
 13. Do `tf plan` then `tf apply`.
@@ -1704,4 +1704,336 @@ When running `tf destroy` only these are deleted
 - module.terrahouse_aws.aws_s3_bucket.website_bucket
 
 but not the OAC or Cloudfront distribution so maybe that's the issue
-I am going to mannually delete them 
+I am going to mannually delete the Cloudfront Distribution and OAC. 
+
+** SOLUTION** I rewatched to video and found a "[" instead of "{" and his error.html did not have the replace_triggered by and the ignore_changes was commented out. 
+Seems to work by not changing anything with `tf plan` when changing index.html
+
+### Change Content Version
+
+1. In terraform.tfvars change content_version to equal 2.
+
+2. Do `tf plan` and it should apply changes this time but it doesn't see any changes.
+
+3. The problem is in main.tf, the value of content_version is hardcoded and we need to add var.content_version instead.
+
+4. Do a `tf apply`. It notices the changes in index.html and applies them because we changed our content_version in terraform.tfvars
+
+### Add to documentation and Commit, PR, merge, then tag
+
+1. In week1.md add
+
+```markdown
+## Terraform Data
+
+Plain data values such as Local Values and Input Variables don't have any side-effects to plan against and so they aren't valid in replace_triggered_by. You can use terraform_data's behavior of planning an action each time input changes to indirectly use a plain value to trigger replacement.
+
+e.g. 
+```go
+  lifecycle {
+    replace_triggered_by = [terraform_data.content_version.output]
+    ignore_changes = [etag]
+  }
+}
+```
+[Data](https://developer.hashicorp.com/terraform/language/resources/terraform-data)
+
+```
+```
+
+2. Stage the changes and commit with
+> #31 only upload index.html is content version has changed
+
+3. Check off issues. Copy issues.
+
+4. Create PR and add issues. Squash and merge
+
+5. Destroy on 31 branch. Tag main with 1.6.0 and close Gitpod
+
+## "Invalidate Cache and Local Exec" Video
+
+### Create an issue
+
+1. In GitHub create an issue with name
+> Invalidate Cloudfront Distribution
+with a description 
+> - [ ] data_source for content_version
+> - [ ] trigger cloudfront distribution invalidation
+
+2. Create Branch off of issue and open branch is Gitpod
+
+### Invalidate CloudFront Distribution using Terraform
+
+1. If you had ChatGPT 4, it could write it for you. Basically we are using terraform_data as a resource to do this like we did with content_version. 
+Everytime we run a new content version it is going to run a command to invalidate the cache.
+
+Put this in resource-cdn.tf:
+```go
+esource "terraform_data" "invalidate_cache" {
+  triggers_replace = terraform_data.content_version.output
+
+  provisioner "local-exec" {
+    # https://developer.hashicorp.com/terraform/language/expressions/strings#heredoc-strings
+    command = <<COMMAND
+aws cloudfront create-invalidation \
+--distribution-id ${aws_cloudfront_distribution.s3_distribution.id} \
+--paths '/*'
+    COMMAND
+
+  }
+}
+```
+2. Go to heredoc for terraform in browser.
+> https://developer.hashicorp.com/terraform/language/expressions/strings#heredoc-strings
+
+
+3. In week1.md add 
+
+```markdown
+## Provisioners
+
+Provisioners allow you to execute commands on compute instances e.g. a AWS CLI command.
+
+They are not recommended for use by Hashicorp because Configuration Management tools such as Ansible are a better fit, but the functionality exists. 
+
+[Provisioners](https://developer.hashicorp.com/terraform/language/resources/provisioners/syntax)
+
+### Local-exec
+
+This will execute a command on the machine running the terraform commands eg. plan and apply
+
+```go
+resource "aws_instance" "web" {
+  # ...
+
+  provisioner "local-exec" {
+    command = "echo The server's IP address is ${self.private_ip}"
+  }
+}
+```
+[Local-exec](https://developer.hashicorp.com/terraform/language/resources/provisioners/local-exec)
+### Remote-exec
+
+This will execute commands on a machine which you targer. You will need to provide credentials such as ssh to get into the machine
+
+```go
+resource "aws_instance" "web" {
+  # ...
+
+  # Establishes connection to be used by all
+  # generic remote provisioners (i.e. file/remote-exec)
+  connection {
+    type     = "ssh"
+    user     = "root"
+    password = var.root_password
+    host     = self.public_ip
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "puppet apply",
+      "consul join ${aws_instance.web.private_ip}",
+    ]
+  }
+}
+```
+[Remote-exec](https://developer.hashicorp.com/terraform/language/resources/provisioners/remote-exec)
+```
+```
+
+3. Do `tf init` and `tf plan`. If it asks for content_version, you need to add it to terraform.tfvars. Then `tf apply`
+Now it invalidates.
+
+### Add Output for Cloudfront URL
+
+1. In nested outputs.tf add this to output a URL to access our website
+
+```go
+output "cloudfront_url" {
+  value = aws_cloudfront_distribution.s3_distribution.domain_name
+} 
+```
+
+2. In outputs.tf reference the "cloudfront_url"
+```go
+output "cloudfront_url" {
+  description = "The CloudFront Distribution Domain Name"
+  value = module.terrahouse_aws.cloudfront_url
+}
+```
+3. Do `tf apply` and link for cloudfront_url is provided. See if website is working. 
+
+4. Change some stuff in index.html then do a `tf plan`. It shouldn't notice any changes because we haven't incremented content_version.
+
+5. In terraform.tfvars change content_version to 3. Run `tf plan` and it should see a change for index.html as well as it will perform the invalidate cache. 
+
+6. Do `tf apply`. It won't invalidate that quicky to show when going to website according to video but mine did with the new changes.
+If not showing go to AWS Console> Cloudfront> Distribution> Invalidatations to see it's status.
+
+### Commit 
+
+1. Do `tf destroy` and wait until it is down.
+
+2. Commit changes with 
+> #33 invalidate cloudfront stack when content version changes
+
+3. Check issues. Copy issues.
+
+4. Create pull request with issues in comment. Squash and Merge.
+
+5. Add tag 1.7.0 to main. 
+
+## "Assets Upload and For Each" video
+
+### Create issue
+
+1. Create a new issue named
+> Assets Upload
+with description of
+> - [ ] Use a For Each to upload assets
+> - [ ] Explore different data structures in Terraform
+> - [ ] Terraform Console
+
+2. Create a branch from issue and launch Gitpod.
+
+### Create assets folder and Serve on http-server
+
+1. Find an Image from Online that your Terratowns is going to be about. Create an assets directory in Gitpod under publicand drag it over.asse
+
+2. In index.html under the body h1 add the image
+`<img src="/assets/NAME OF YOUR PHOTO"`
+
+3. Grab another image of your thing you are doing. Add it to the assets folder.
+
+4. Under the first image in body index.html add the image
+
+5. Add to gitpod.yml to serve our site using http-server
+```yml
+- name: http-server
+    before: |
+      npm install --global http-server
+    command:
+      http-server
+
+```
+The website is here
+> https://www.npmjs.com/package/http-server
+
+6. Make a new Gitpod terminal tab and run
+`npm install --global http-server`
+`http-server`
+
+7. Go to the link.
+
+### For Each for Uploading Assets Folder to S3 and TF console
+
+1. In Gitpod Terminal and type
+`tf init`
+`tf console`
+
+2. Search for terraform fileset in a web browser
+> https://developer.hashicorp.com/terraform/language/functions/fileset
+
+3. Still in tf console do these to list out files in /assets
+`path.root`
+`fileset("${path.root}/public/assets", "*")`
+
+4. We want to specify further for fileset to get pictures
+`fileset("${path.root}/public/assets","*.{jpeg,png,gif}")`
+
+5. Copy the last command and paste it in resource-storage.tf under "index_html" block
+
+
+6. In resource-storage,tf before our fileset, name our "upload_assests" and paste in the fileset into the for_each and uncomment it. Add the bucket, key, source, etag, and lifecycle like we did in the previous objects. 
+
+7. The key is where we want to go to assets directory. Use interporlation "${}" to not hardcode things in to allow more pictures.
+`key = "assets/${each.key}`
+
+8. The source is where we get the path of where the files are 
+`source = "${path.root}/public/assets/${each.key}"`
+
+9. The etag is just doing filemd5 to hash the source
+`etag = filemd5("${path.root}/public/assets/${each.key}")`
+
+In the end it should look like this
+
+```go
+resource "aws_s3_object" "upload_assets" {
+  for_each = fileset("${path.root}/public/assets","*.{jpeg,png,gif}")
+  bucket = aws_s3_bucket.website_bucket.bucket
+  key    = "assets/${each.key}"
+  source = "${path.root}/public/assets/${each.key}"
+   etag = filemd5("${path.root}/public/assets/${each.key}")
+  lifecycle {
+    replace_triggered_by = [terraform_data.content_version.output]
+    ignore_changes = [etag]
+  }
+}
+```
+
+10. Do `tf plan` and we should see how picture files are going to upload.
+Do `tf apply --auto-approve` and it should take a while.
+
+11. Take the cloudfront-url and you should see all your pictures on the webpage meaning that the files did upload to the S3 bucket and CloudFront is serving them.
+
+### Add documentation and Create Assets Path for Portability 
+
+1. In week1.md add
+
+```markdown
+## For Each Expressions
+
+For each allows us to enumerate over complex data types
+
+```sh
+[for s in var.list : upper(s)]
+```
+This is mostly usedful when you are creating multiples of a cloud resource and you want to reduce the amount of repetitive terraform code.
+
+[For Each Expression](https://developer.hashicorp.com/terraform/language/expressions/for)
+```
+```
+
+2. Looking back at our resource-storage.tf, we forgot that somethings are hardcoded and if someone wants to name it something other than that, the code will fail. 
+E.G. `"${path.root}/public/assets"` in 
+`for_each = fileset("${path.root}/public/assets","*.{jpeg,png,gif}")` 
+
+This would be better as a variable instead.
+`var.assets_path`
+
+Fix the code.
+
+3. The code should look like this:
+
+```go
+resource "aws_s3_object" "upload_assets" {
+  for_each = fileset(var.assets_path,"*.{jpeg,png,gif}")
+  bucket = aws_s3_bucket.website_bucket.bucket
+  key    = "assets/${each.key}"
+  source = "${var.assets_path}/${each.key}"
+   etag = filemd5("${var.assets_path}/${each.key}")
+  lifecycle {
+    replace_triggered_by = [terraform_data.content_version.output]
+    ignore_changes = [etag]
+  }
+}
+```
+
+4. Define `var.assets_path` in variables.tf nested and reference in variables.tf.
+
+5. Add assets_path to terraform.tfvars and terraform.tfvars. Reset content_version to 1. 
+
+6. Add to main.tf assets_path
+Do a `tf plan` to make sure it is working then do `tf destroy`
+
+### Commit, PR, Squash Merge, and Tag
+
+1. Stage and commit all changes with
+> #35 upload assets using a for_each
+
+2. Update issue. Copy issue.
+
+3. Create PR, comment issues. Squash and merge
+
+4. Add tags to main 1.8.0 and close Gitpod.
+
