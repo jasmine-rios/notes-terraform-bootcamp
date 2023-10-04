@@ -1261,7 +1261,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 13. On the top add 
 ```go
 locals {
-  s3_origin_id = "myS3Origin"
+  s3_origin_id = "MyS3Origin"
 }
 ```
 
@@ -2037,3 +2037,50 @@ Do a `tf plan` to make sure it is working then do `tf destroy`
 
 4. Add tags to main 1.8.0 and close Gitpod.
 
+## "Gitgraph" Video
+
+### Create issue
+1. In GitHub create a issue named
+> Add Git Graph to Gitpod Configuration
+with description
+> We want to add the git graph extensions in hopes of fixing our git graph issues
+
+2. Create a branch off of issue and open Gitpod
+
+### Add GitGraph to gitpod.yml
+
+1. In Gitpod extensions find the GitGraph extension and click on the clog. Click Copy extension ID
+
+2. In gitpod.yml add the extension ID to extensions
+`mhutchie.git-graph`
+
+3. Commit the changes with
+> #37 add the known extension to our gitpod configuration task file
+
+4. Make a PR and squash and merge.
+
+5. Tag the main 1.8.1
+
+### Add git-log--graph
+
+1. In Gitpod extensions find git-log--graph and click the cog. Click copy extension ID.
+
+2. In gitpod.yml add the extension ID to extensions
+`phil294.git-log--graph`
+
+3. Since our branch is main, we want to add the commit to the previous branch instead.
+`git checkout 37-add-git-grapb-to-gitpod-configuration`
+
+4. Commit with 
+> #37 add another git graph alternative to ensure we can see graphing
+
+5. Create PR. Squash and merge.
+If you didn't do `git pull` on main earlier you it might tell you that it can't merge.
+To fix this either merge the branches in Gitpod or Resolve Conflict after creating PR.
+
+6. tag main with 1.8.2 and close gitpod. 
+If you are running the validator after this leave gitpod open.
+
+## Validator
+
+1. With GitPod open on your last tag with the 1.8.2, do a `tf apply`
