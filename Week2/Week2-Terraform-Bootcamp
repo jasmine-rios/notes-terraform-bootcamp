@@ -102,6 +102,25 @@ Drag the folder into bin.
 
 2. In Gitpod, open the sinatra tab and make sure there are no errors and it is running
 
+**PROBLEM** My sinatra terminal does show an error. I am going to go to the example repo to see if I am missing anything. I was missing cd terratowns I added it and commited it and restarted Gitpod.
+
+
+```sh
+server.rb: --> server.rb
+syntax error, unexpected local variable or method, expecting `do' or '{' or '('
+  35  ] }
+> 42    validates :domain_name, 
+> 43      format: { with: /\.cloudfront\.net\z/, message: "domain must be from .cloudfront.net" }
+> 47      validates :content_version, numerically: {only integer true}
+> 48    validates :content_version, numericality: { only_integer: true }
+  49  end
+server.rb:47: syntax error, unexpected local variable or method, expecting `do' or '{' or '(' (SyntaxError)
+...ion, numerically: {only integer true}
+```
+**FIX**
+I had to take 47 out. Now sinatra runs
+I am now having this issue with Sinatra
+
 3. In journal directory create the week2.md file
 
 4. Copy the top from week1.md and paste into week2.md and edit it to our week 2.
@@ -320,7 +339,7 @@ Check Sinatra terminal and notice it did a read.
 Doesn't work because we need domain_name and that the **code trap**.
 
 13. In server.rb go to around line 192 to update action and fix it
-In line 216 after town add 
+in line 216 after town add 
 `home.domain_name = $home[:domain_name]`
 
 14. If we ran the script with our changes, it would give the same errror because it doesn't see a change.
@@ -345,13 +364,32 @@ We see update in sinatra terminal now
 
 19. Do a `./bin/terratowns/delete <UUID>`
 
+
+**PROBLEM**
+I am getting a bunch of crap running that script with anything. I am going to do the next step then commit with a problem. Hopefully it will work tomorrow. It seems like Sinatra is good but when running ./bin/terratowns/create
+**FIX**
+I didn't have this line of code in server.rb for some reason 
+` domain_name = payload["domain_name"]`
+now I am able to run the terratowns scripts for create, read, update.
+
 20. It kind of messed it up so go back to server.rb and add 240
 ```rb
 uid = $home[:uuid]
 $home = {}
 { uuid: uuid}.to_json
 ```
+
 21. Stop and restart sinatra. Then do /delete than stop server.
+
+**PROBLEM**
+When do a ./bin/terratowns/delete <uuid>, I am getting a bunch of crazy stuff like the last problem I had. It also says in Sinatra 
+
+> NameError - undefined local variable or method `home' for #<TerraTownsMockServer:0x00007fa8912fe1a8
+
+**FIX**
+
+Had to restart Sinatra a few times and now /delete works.
+
 
 22. Commit with 
 > #42 make sure that all our endpoints work correctly.
