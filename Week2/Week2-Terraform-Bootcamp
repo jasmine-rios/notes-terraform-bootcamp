@@ -397,3 +397,454 @@ Had to restart Sinatra a few times and now /delete works.
 ### Issues, PR, tag, and stop workspace
 
 ## "Setup Skeleton For Custom Terraform Provider" video
+
+### Make a New Issue
+
+1. In Github, create an issue named
+> Terratowns Provider
+
+2. Create a branch off of the issue
+
+3. Label it as enchancement
+
+4. Open Gitpod for the new branch
+
+### Create main.go
+
+1. Make a new folder in main called terraform-provider-terratowns
+
+2. In that folder create a file named main.go
+
+3. Specify it's package
+
+`package main`
+
+4. Create a function
+
+`func main (){}`
+
+5. Check to make sure the `package main` works as expected
+
+6. In the func main block add a print for hello world and add a comment above explaining it. It will add import "fmt" before it
+
+` // Format.PrintLine`
+` // Prints to standard output.`
+` fmt.Println("Hello, world!")`
+
+7. Run the program in terminal and it will create a binary file
+
+`cd terraform-provider-terratowns`
+`go run main.go`
+
+It prints Hello, world! But doesn't make a binary file
+
+8. Document for package main
+`// package main: Declares the package name.`
+`// The main package is special in Go, it's where the execution of the program starts.`
+
+9. Document for import "fmt"
+
+`// fmt is short for format, contains functions for formatter I/O.`
+
+10. Document for func main()
+
+`// func main(): Defines the main function, the entry point of the app`
+`// When you run the program it starts executing from this function`
+
+### Create a Provider for Terraform
+
+1. In our func main, define a plugin for terraform.
+
+```go
+plugin.Serve(&plugin.ServeOpts{
+		
+	})
+```
+
+2. It will import plugin, change it to define the address of the plugin
+Make sure to change import to use "()"
+
+`"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"`
+
+3. In plugin.serve block add a provider function as provider
+
+`ProviderFunc: Provider`
+
+4. At the end create a function for provider that contains schema for it
+
+`func Provider() *schema.Provider {}`
+
+5. In func Provider block, define a variable for a pointer for *schema.Provider
+
+`var p *schema.Provider`
+
+6. In the same block define p to be &schema.Provider
+
+`p = &schema.Provider{}`
+
+7. In the p = block add ResourcesMaps, Schema, and DataSourcesMaps
+
+`ResourcesMaps: map[string]*schema.Resource{},`
+`DataSourcesMaps: map[string]*schema.Resource{},`
+`Schema: map[string]*schema.Resource{},`
+
+8. Import the link for schema
+
+`"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"`
+
+9. In the func Provider, assign a pointer ConfigureContextFunc and assign it to a function providerConfigure and return p
+
+`p.ConfigureContextFunc = providerConfigure(p)`
+`return p`
+
+10. Document above func Provider()
+
+`// in golang, a titlecase function will get exported.`
+
+11. In the Schema: block define the schema with enpoint, user_uuid, and token
+```go
+"endpoint": {
+	Type: schema.TypeString,
+  Required: true,
+  Description: "The endpoint for the external service",
+	},
+"token": {
+	Type: schema.TypeString,
+	Sensitive: true, // make the token as sensitive to hide it in the logs
+  Required: true,
+  Description: "Bearer token for authorization", 
+	},
+"user_uuid": {
+	Type: schema.TypeString,
+  Required: true,
+  Description: "UUID for configuration",
+	ValidateFunc: validateUUID
+	},
+```
+
+12. In order to validate user_uuid, crate a func to validate it
+```go
+func validateUUID(v interface{}, k string) (ws []string, errs []error) {
+	log.Print('validateUUID:start')
+	value := v.(string)
+	if _, err := uuid.Parse(value); err != nil {
+		errors = append(error, fmt.Errorf("invalid UUID format"))
+	}
+	log.Print('validateUUID:end')
+}
+```
+
+13. Import "log" if the last step didn't add it.
+
+14. Simplify it right now comment out p.ConfigureContextfunc,the whole func validateUUID block, and ValidateFunc in "user_uuid":
+
+15. Now we we need to compile the provider by creating a terraformrc file in the root of our repo.
+
+### Define in .terraformrc
+
+1. In terraformrc, add
+
+```
+provider_installation {
+  filesystem_mirror {
+    path = "/home/gitpod/.terraform.d/plugins"
+    include ["local.providers/*/*"]
+    }
+  direct {
+    exclude = ["local.providers/*/*"]
+    }
+}
+```
+
+2. Create a file in bin named build_provider and add this to create a binary
+Remember this is specific to what you are running your compute on hence linux_amd64 and x86_64.
+
+The link here is what Andrew used to build this all out
+> https://servian.dev/terraform-local-providers-and-registry-mirror-configuration-b963117dfffa
+
+```
+#! /usr/bin/bash
+
+PLUGIN_DIR= "~/.terraform.d/plugins/local.providers/local/terratowns/1.0.0/"
+PLUGIN_NAME= "terraform-provider-terratowns_v1.0.0"
+
+# https://servian.dev/terraform-local-providers-and-registry-mirror-configuration-b963117dfffa
+cd $PROJECT_ROOT/terraform-provider-terratowns
+cp $PROJECT_ROOT/terraformrc /home/gitpod/.terraformrc
+rm -rf ~/.terraform.d/plugins
+rm -rf $PROJECT_ROOT/.terraform
+rm -rf $PROJECT_ROOT/.terraform.lock.hcl
+go build -o $PLUGIN_NAME
+mkdir -p $PLUGIN_DIR/x86_64/
+mkdir -p $PLUGIN_DIR/linux_amd64/
+cp $PLUGIN_NAME $PLUGIN_DIR/x86_64
+cp $PLUGIN_NAME $PLUGIN_DIR/linux_amd64
+
+```
+
+3. Run manually to make sure the script we just made will work
+
+`cd terraform-provider-terratowns`
+`go build -o terraform-provider-terratowns_v1.0.0`
+
+Doesn't work because it is looking for other files.
+
+4. Under terraform-provider-terratowns, create a file named go.mod
+
+5. In go.mod add 
+
+```
+module github.com/ExamProCo/terraform-provider-terratowns
+
+go 1.20
+
+replace github.com/ExamProCo/terraform-provider-terratowns => /workspace/terraform-beginner-bootcamp-2023/terraform-provider-terratowns
+
+```
+
+6. Run the script again 
+
+`go build -o terraform-provider-terratowns_v1.0.0`
+
+It says we are missing import path because originally our main.go import was using "{}" but we need to use "()"
+
+7. Run the script again and it says no required module provides the two links we specified in main.go
+Copy the lines it tells you to add and put it in terminal then run the script again
+
+8. When running those go get commands in terminal, it created a go.sum file under terraform-provider-terratowns
+The commands also added required links to our go.mod
+Run the script again and it will take a while
+
+9. It tells us we are missing either a comma of "}" in lines in main.go.
+Fix the issues.
+I kept getting issues with ResourcesMap and DataSourcesMap telling me to use SchemaFunc but I just copied the code from the repo for main.go and then it worked.
+
+10. Run the script again and the binary named terraform-provider-terratowns_v1.0.0 is created.
+**WE DO NOT WANT TO COMMIT THIS TO OUR CODEBASE**
+
+11. In .gitignore add the file
+
+`terraform-provider-terratowns/terraform-provider-terratowns_v*`
+
+### Commit, PR, Merge, and Tag
+
+1. Commit with 
+> #44 wip setting up the skeleton for creating a custom terraform provider
+2. Tag with 2.1.0
+
+## "Provider Block for Custom Terraform Provider" video
+
+### 
+
+1. Just jump in no issue created in this video into 44-terratowns-provider
+
+2. Change the permissions for the script to be executable
+
+`chmod u+x bin/build_provider`
+
+3. Run the scipt to see if it works
+
+`./bin/build_provider`
+
+4. It produces the terraform-provider-terratowns_v1 under terraform-provider-terratowns folder which is fine because we ignore that but it created a folder under the mentioned folder called ~ and has the linux_amd64 and x86_64 file. 
+Delete the whole ~ folder.
+
+5. To fix that go back to build_provider change PLUGIN_DIR and first rm statement from ~ to /home/gitpod 
+
+6. Run the script again.
+
+7. Check to see if the scipt created the files x86_64 and linux_amd64 in the directory under /home/gitpod
+
+`ls /home/gitpod/.terraform.d/plugins/local.providers/local/terratowns/1.0.0/`
+
+8. Now that we have the library build out, we want to configure it in our terraform.
+Comment out module "terrahouse_aws block in main.tf at top-level. 
+
+9. In main.tf under terraform {} add this to have our provider
+
+```go
+required_providers {
+      terratowns = {
+        source = "local.providers/local/terratowns"
+        version = "1.0.0"
+      }
+    }
+```
+
+10. In main.tf before module terrahouse_aws specify the provider
+```go
+provider "terratowns" {
+    endpoint = "http://localhost:4567"
+    user_uuid = ""
+    token = ""
+}
+```
+
+11. Find the user_uuid and token in terratowns/create and add it to the block.
+
+12. Run the script to build again
+
+13. Run tf init
+
+14. In terraformrmc change include line to have an equals.
+
+14. Run tf init again.
+
+15. It works now change the log level
+
+`TF_LOG=DEBUG`
+
+16. Do this command to see difference in tf init that shows debug info
+
+`TF_LOG=DEBUG tf init`
+
+17. So we don't forget about it, go to our gitpod.yml and under name: terraform add this
+```yml
+    env: 
+      TF_LOG: DEBUG
+```
+
+18. Export the debug command to have it show without running tf
+`export TF_LOG=DEBUG`
+
+19. Run tf init and now it shows debug automatically
+
+20. Run tf plan and it will show the debug with some errors in regards to outputs.tf.
+Comment out the whole outputs.tf
+
+21. Run tf plan and no errors and no changes.
+
+22. Run tf apply to create a statefile and the statefile doesn't have any changes.
+
+23. Commit the changes with
+> #44 implement terraform provider block in terraform 
+
+24. Create a new PR. We get an issue for merging so we have to merge main into the branch and resolve the issues.
+
+`git merge main`
+
+After changes made add the changes in source to stage then
+
+`git commit`
+
+`git push`
+
+25. In gitgraph we see the merge and can finish out PR 
+
+26. Tag main with 2.2.0
+
+27. Go into last branch if you don't want to open up another GitPod and continue with video
+You might have to do `git merge main` and `git push`. 
+
+## "Resource Skeleton" video
+
+1. Create without issue, open up the last branch 44-terratowns-provider
+
+2. In main.go under terraform-provider-terratowns 
+Uncomment the validate function block,the statement to validate UUID, and import log. 
+
+3. Make sure we are on the terraform tab because this is the one with the debug. 
+Run `./bin/build_provider`
+
+4. We get an error on the func of validateUUID log.print, change both lines to have double quotations instead of single.
+
+5. Also fix the err line to be this because it says err is undefined
+`if _, err :=`
+
+6. Also fix undefined uuid by adding this to import
+`"github.com/google/uuid"`
+
+7. Run the script again and it will tell us to install the import we just added. Copy and run this to go in that directory and install it
+`cd terraform-provider-terratowns/`
+`go get github.com/ExamProCo/terraform-provider-terratowns`
+`cd ..`
+
+8. Run the script again and it says error (type) is not an expression.
+To fix that change the main.go last function from error to errors
+
+9. Now it says the function is missing a return, fix by adding a `return` at end of block.
+
+10. Run the script again and no error are produced and our binary is created.
+
+11. Do a tf init and check for errors in debug.
+
+12. Do a tf plan and no changes are made so that's probably why there is no log.Print pushed. Since no errors, move on.
+
+13. In main.go uncomment p.ConfigureContextFunc then at the end of the file write the function
+```go
+func providerConfigure(p *schema.Provider) schema.ConfigureContextFunc {
+	return func(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics ) {
+		log.Print("providerConfigure:start")
+		config := Config{
+			Endpoint: d.Get("endpoint").(string),
+			Token: d.Get("token").(string),
+			UserUuid: d.Get("user_uuid").(string),
+		}
+		log.Print("providerConfigure:end")
+		return &config, nil
+	}
+}
+```
+
+14. Run the script again andand it will say undefined config add the following under func main block
+```go
+type Config struct {
+	Endpoint string
+	Token	string
+	UserUuid string
+}
+```
+
+15. Run the script again. No errors.
+
+16. Now we need to define house.
+In main.go under func Provider() and under ResourcesMap line add in that block
+`"terratowns_home": Resource(),`
+
+17. At the end of main.go, define our func
+
+18. In Journal dir for week2.md add
+```md
+## CRUD
+
+Terraform provider resources utilize CRUD.
+
+CRUD stands for Create, Read, Update, and Delete
+
+[CRUD](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete)
+```
+
+19. In main.go we will have to create func for each resourceHouseCRUD 
+```go
+func resourceHouseCreate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+	return diags
+}
+
+func resourceHouseRead(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+	return diags
+}
+
+func resourceHouseUpdate(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+	return diags
+}
+
+func resourceHouseDelete(ctx context.Context, d *schema.ResourceData, m interface{}) diag.Diagnostics {
+	var diags diag.Diagnostics
+	return diags
+}
+```
+
+19. Run the script and fix the errors with adding {} and return resource for func Resource
+Run the script again, tf init, and tf plan; They should work.
+
+20. Commit our changes with 
+> #44 setup skeleton for resource
+
+21. Create a PR and squash and merge
+
+22. Tag main with 2.3.0
+
+## "Implementing Crud" video
