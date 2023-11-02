@@ -1098,4 +1098,87 @@ Do `tf init`.
 
 5. Do a `tf apply` and yes. We got some errors. One of them change int64 to int and then build, init, apply.
 
-6. 
+6. In main.go for the create action modify the "Construct the HTTP Request" to say this
+```go
+	// Construct the HTTP Request
+	url := config.Endpoint + "/u/" + config.UserUuid + "/homes"
+	log.Print("URL: " + url)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
+```
+
+7. Copy the first two lines you added above "Construct the HTTP Request" and go to the read action and add it at the "Construct the HTTP Request". 
+Modify the equal to mean be the read expression
+
+```go 
+	// Construct the HTTP Request
+	url := config.Endpoint+"/u/"+config.UserUuid+"/homes/"+homeUUID
+  log.Print("URL: " + url)
+	req, err := http.NewRequest("GET", url, nil)
+```
+
+8. Copy the two lines and go to the update action and update it like the last step.
+
+9. Do the same for as the lasts steps for the delete action.
+
+10. Build, init, apply and it doesn't work.
+
+11. Go to main.tf and the provider "terratowns" is supposed to have api on the end
+
+```go
+provider "terratowns" {
+    endpoint = "http://localhost:4567"
+```
+
+12. Do a build, init, and apply. It works and create the resource but it's going to the mock cloudfront url. 
+
+13. Now let's do a superfical change by going to the main.tf and changing the resource for "home" like adding an exclamiation in the name.
+Do a `tf apply` and see if it notices this change.
+
+14. We are getting a problem because we need to change (int) for content_version lines to (float64). 
+Change that. 
+
+15. Stop the sinatra server, remove the exlamation mark on name,then rebuild everything, init, and apply.
+Doesn't work because we need to delete the state files first.
+
+16. Build, init, apply. Plug in crashes again.
+Take out the float64 on content_version g.Get in create action and the d.get in update action put int.
+
+17. Build, delete the state files, stop/start sinatra (`bundle exec ruby server.rb`), int, apply.
+
+**PROBLEM**
+His works but for some reason mine is asking for what var.assets_path, var.bucket_name, and var.content_version, var.error_html_filepath, var.index_html_filepath, var.user_uuid, 
+
+```sh
+╷
+│ Error: Invalid value for input variable
+│ 
+│   on variables.tf line 17:
+│   17: variable "content_version" {
+│ 
+│ Unsuitable value for var.content_version set using an interactive prompt: a number is
+│ required.
+```
+
+Looking at his main.tf even though it is commented out, he doesn't have asset_path under his module terrahouse_aws
+
+Looking at my main.tf and my variables.tf I have all of the variables listed.
+
+Looking into the nested variables.tf I have all of my variables in my variables.tf.
+
+I am going to look into his nested variables.tf and see if he has something else listed.
+Our nested variables.tf is the same. 
+
+Going to look into the discord.
+
+Not finding my problem thus far but I will look into discord more. 
+
+I tried to incremement the content_version to a higher number to see if that would fix it but it doesn't.
+
+Debug info to troubleshoot:
+2023-11-02T21:35:30.982Z [INFO]  backend/local: starting Apply operation
+2023-11-02T21:35:30.982Z [DEBUG] backend/local: will prompt for input of unset required variables [user_uuid bucket_name index_html_filepath error_html_filepath content_version assets_path]
+
+Going to commit it and work on it after the gym.
+
+
+
