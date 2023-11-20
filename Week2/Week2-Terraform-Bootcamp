@@ -1180,5 +1180,40 @@ Debug info to troubleshoot:
 
 Going to commit it and work on it after the gym.
 
+**FIX**
 
+Had to restart from last tag and it worked.
+
+18. It works. Now do a `tf destory`
+
+19. Commit with
+> #44 finish implementation of terraform provider
+
+20. Make the PR and tag with 2.4.0
+
+## Getting Access Code for TerraTowns
+
+To get your access code go to the class and click your picture. 
+
+Go to settings and under Vending Machine and dispense the code.
+
+Use the code to sign up for Terratowns
+
+## Deploying to Terratowns
+
+### Create issue
+
+1. Create an issue
+> Terratown Test
+
+2. Give it a description
+> [ ] test our custom provider, to work with the production sever
+
+3. Create the branch off of the issue and open the branch with Gitpod
+### Terratowns
+
+1. Go to terratowns and sign in 
+https://terratowns.cloud
+
+2. 
 
