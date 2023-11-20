@@ -1215,5 +1215,263 @@ Use the code to sign up for Terratowns
 1. Go to terratowns and sign in 
 https://terratowns.cloud
 
-2. 
+2. In gitpod go to main.tf and change the provider "terratowns" and change the endpoint, add your user uuid and token. User uuid is found in platform the token is from the last video that we dispensed.
 
+```
+provider "terratowns" {
+    endpoint = "https://terratowns.cloud/api"
+    user_uuid = "userID"
+    token = "token"
+}
+```
+3. In resource "terratowns_home" "home" change town to missingo
+
+`  town = "missingo"`
+
+4. Do a `.bin/build_provider`
+
+5. Do `tf init`
+
+6. Do `tf apply`
+
+**PROBLEM**
+When applying I had this issue
+```sh
+╷
+│ Error: failed to create home resource, status_code: 422, status: 422 Unprocessable Entity, body map[err:map[domain_name:[has already been taken]]]
+│ 
+│   with terratowns_home.home,
+│   on main.tf line 34, in resource "terratowns_home" "home":
+│   34: resource "terratowns_home" "home" {
+│ 
+╵
+```
+
+**FIX**
+Changed a character in the mock domain name and incremented the content_version number. 
+Build, delete statefile, stop and start sinatra, init, apply
+
+7. It is now in missingo but when you click it won't take you anywhere as the cloudfront is mocked.
+
+8. Now we need to put in the correct cloudfront, do a `tf destroy`.
+
+9. Take out the old domain and put the new one there.
+`domain_name = module.terrahouse_aws.cloudfront_url`
+
+10. Go to terraform.tfvars and add
+
+`terratowns_endpoint="https://terratowns.cloud/api"`
+
+11. Copy the above line and user_uuid and paste into terraform.tfvars.example
+
+12. Then set the token in terminal
+`export TF_VAR_terratowns_access_token="<token>"`
+`gp env TF_VAR_terratowns_access_token="<token>"`
+
+13. Set the user uuid in terminal as well
+`export TF_VAR_teacherseat_user_uuid="<uuid>"`
+`gp env TF_VAR_teacherseat_user_uuid="<uuid>"`
+
+14. Go to main.tf and add the following
+```
+provider "terratowns" {
+    endpoint = var.terratowns_endpoint
+    user_uuid = var.teacherseat_user_uuid
+    token = var.terratowns_access_token
+}
+```
+
+15. Change user_uuid in module terrahouse_aws to
+`#     user_uuid = var.teacherseat_user_uuid`
+
+16. In teraform.tfvars and example remove user_uuid
+
+17. Let's do a quick test before. 
+Change main.tf and uncomment domain_name and put the mock back in
+`  domain_name = "3fdfa3.cloudfront.net"`
+
+18. Do `tf init` then `tf apply`.
+It asks for user_uuid so change variables.tf to teacherseat_user_uuid and add one for the access token and endpoint
+
+```go
+variable "teacherseat_user_uuid" {
+type = string
+}
+
+variable "terratowns_access_token" {
+type = string
+}
+
+variable "terratowns_endpoint" {
+type = string
+}
+
+```
+
+19. Do `tf apply` and test should work.
+
+20. Do `tf destroy --auto-approve`
+
+### Run it with domain.name
+
+1. In main.tf, Uncomment mock and comment in actual domain_name.
+
+2. Uncomment module "terrahouse_aws"
+
+3. Do `tf init`
+
+4. Uncomment the outputs.tf
+
+5. Do `tf apply`
+
+**PROBLEM**
+When doing `tf apply` I get this error after typing yes
+```sh
+╷
+│ Error: creating Amazon CloudFront Origin Access Control (OAC 1wakpj698imyssoncxa1hxx9bx74xknf): OriginAccessControlAlreadyExists: An origin access control with the same name already exists.
+│       status code: 409, request id: 9af5e0bc-9600-470a-a292-733bb4fb6caa
+│ 
+│   with module.terrahouse_aws.aws_cloudfront_origin_access_control.default,
+│   on modules/terrahouse_aws/resource-cdn.tf line 3, in resource "aws_cloudfront_origin_access_control" "default":
+│    3: resource "aws_cloudfront_origin_access_control" "default" {
+│ 
+╵
+╷
+│ Error: creating Amazon S3 (Simple Storage) Bucket (1wakpj698imyssoncxa1hxx9bx74xknf): bucket already exists
+│ 
+│   with module.terrahouse_aws.aws_s3_bucket.website_bucket,
+│   on modules/terrahouse_aws/resource-storage.tf line 2, in resource "aws_s3_bucket" "website_bucket":
+│    2: resource "aws_s3_bucket" "website_bucket" {
+│ 
+╵
+```
+I will go into AWS and see if if I can delete these. 
+I can delete the bucket manually.
+
+I can not manually delete OAC or delete it with tf destroy.
+
+I committed my changes and stopped then started gitpod to see if that fixes.
+
+Now it only shows that the bucket is still there. I will manually delete the bucket 
+
+I think it's because I never `tf destroy` after stopping each session of Gitpod. I will monitor as most of the time I don't get this when doing apply.
+
+After the bucket is destroyed I still now get OAC exisiting when apply.
+
+Asking ChatGPT it says to use the count agrument to check if OAC with specific name exists. 
+
+In resource-cdn.tf I added count = var.create_oac ? 1 : 0
+to the OAC block.
+
+I also added it to tfvars and tfvars.example
+
+When applying I get 
+```
+│ Error: Reference to undeclared input variable
+│ 
+│   on modules/terrahouse_aws/resource-cdn.tf line 4, in resource "aws_cloudfront_origin_access_control" "default":
+│    4:   count = var.create_oac ? 1 : 0
+│ 
+│ An input variable with the name "create_oac" has not been
+│ declared. This variable can be declared with a variable
+│ "create_oac" {} block.
+```
+I made didn't put modules/terraform_aws variables.tf this so I added it:
+```go
+variable "create_oac" {
+  description = "Set this to true to create the OAC, false to manage an existing one."
+  type = bool
+  default = false
+}
+```
+
+and made sure it exists in the main main.tf
+```go
+variable "create_oac" {
+  type = bool
+}
+```
+
+Now when running tf apply I get this error
+
+```sh
+2023-11-20T19:56:46.505Z [ERROR] vertex "module.terrahouse_aws.aws_cloudfront_distribution.s3_distribution" error: Missing resource instance key
+╷
+│ Error: Missing resource instance key
+│ 
+│   on modules/terrahouse_aws/resource-cdn.tf line 19, in resource "aws_cloudfront_distribution" "s3_distribution":
+│   19:     origin_access_control_id = aws_cloudfront_origin_access_control.default.id
+│ 
+│ Because aws_cloudfront_origin_access_control.default has
+│ "count" set, its attributes must be accessed on specific
+│ instances.
+│ 
+│ For example, to correlate with indices of a referring
+│ resource, use:
+│     aws_cloudfront_origin_access_control.default[count.index]
+╵
+```
+To resolve this I needed to add this to resource-cdn.tf at the origin_access_control line
+
+```go
+  origin {
+    domain_name = aws_s3_bucket.website_bucket.bucket_regional_domain_name
+    origin_access_control_id = aws_cloudfront_origin_access_control.default[count.index].id
+    origin_id = local.s3_origin_id
+  }
+```
+
+I did a tf apply, now got this error
+```sh
+│ Error: Reference to "count" in non-counted context
+│ 
+│   on modules/terrahouse_aws/resource-cdn.tf line 19, in resource "aws_cloudfront_distribution" "s3_distribution":
+│   19:     origin_access_control_id = aws_cloudfront_origin_access_control.default[count.index].id
+│ 
+│ The "count" object can only be used in "module",
+│ "resource", and "data" blocks, and only when the "count"
+│ argument is set.
+```
+I had to change to this instead
+
+```go
+resource "aws_cloudfront_distribution" "s3_distribution" {
+  origin {
+    domain_name = aws_s3_bucket.website_bucket.bucket_regional_domain_name
+    origin_access_control_id = aws_cloudfront_origin_access_control.default[0].id
+    origin_id = local.s3_origin_id
+  }
+
+```
+
+**FIX**
+
+Working on fixing it is too hard. I am just going to delete (disable doesn't allow OAC to be deleted) the distribution and delete the bucket, then delete OAC. 
+
+6. In terraform.tfvats.example take out bucket_name
+
+7. In main.tf module "terrahouse_aws" take out bucket_name
+
+8. Go into resource-storage.tf and comment out bucket = under resource "aws_S3_bucket" and add 
+`# we want to assign a random bucket name`
+
+9. In nested variables.tf comment out variable "bucket_name" block along with it's validation
+
+10. Do `tf apply`
+
+11. Update resource_cdn.tf 
+
+```go
+resource "aws_cloudfront_origin_access_control" "default" {
+  name = "OAC ${aws_s3_bucket.website_bucket.bucket}"
+  description = "Origin Access Controls for Static Website Hosting ${aws_s3_bucket.website_bucket.bucket}"
+  origin_access_control_origin_type = "s3"
+  signing_behavior = "always"
+  signing_protocol = "sigv4"
+}
+```
+
+12. Below that change the comment under origin to
+`  comment             = "Static websitre hosting for ${aws_s3_bucket.website_bucket.bucket}"`
+
+13. Cut locals in resource cdn and add it to the top
