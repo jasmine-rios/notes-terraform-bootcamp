@@ -1558,4 +1558,30 @@ I did a `tf login` and pressed q to get out of the tf terminal.
 
 In Terraform cloud I created a new token under workspaces> settings> 
 
+**FIX**
+
+7. Do `tf apply`
+
+**PROBLEM**
+
+I ran tf apply and I was given these errors
+
+```sh
+╷
+│ Error: failed to update home resource, status_code: 422, status: 422 Unprocessable Entity
+│ 
+│   with terratowns_home.home,
+│   on main.tf line 33, in resource "terratowns_home" "home":
+│   33: resource "terratowns_home" "home" {
+│ 
+╵
+╷
+│ Error: reading S3 Bucket (terraform-20231124152832997300000001) Policy: couldn't find resource
+│ 
+│   with module.terrahouse_aws.aws_s3_bucket_policy.bucket_policy,
+│   on modules/terrahouse_aws/resource-storage.tf line 68, in resource "aws_s3_bucket_policy" "bucket_policy":
+│   68: resource "aws_s3_bucket_policy" "bucket_policy" {
+│ 
+```
+
 ###
